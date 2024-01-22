@@ -33,7 +33,7 @@ function getType(xml) {
     if(xml.indexOf('<key>ProvisionsAllDevices</key>') >= 0) {
         return types.inhouse
     }
-    if(xml.indexOf('<key>ProvisionedDevices</key>') < 0) {
+    if(xml.indexOf('<key>ProvisionedDevices</key>') >= 0) {
         return types.appstore
     }
     if(xml.match(/<key>get-task-allow<\/key>\n\s*<true\/>/)) {
