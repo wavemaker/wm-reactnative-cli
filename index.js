@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const {
-    ejectProject, build, embed
+    prepareProject, ejectProject, build, embed
 } = require('./src/command');
 const os = require('os');
 const { LocalStorage } = require('node-localstorage');
@@ -135,14 +135,37 @@ const args = require('yargs')
         },
         (args) => {
             ejectProject(args);
-    }).command('embed', '',
-        yargs => {
-            yargs.command('android [src]',
-                'Embed React Native project with Native Android project',
-                yargs => {},
-                (args) => {
-                args.platform = 'android';
-                return embed(args);
+        }).command(
+    'prepare expo [src] [dest]',
+    'Prepare Expo and generate RN native project.',
+    (yargs) => {
+      yargs
+        .positional('src', {
+          describe: 'path of React Native project',
+          default: './',
+          type: 'string',
+          normalize: true,
+        })
+        .option('dest', {
+          alias: 'dest',
+        //   default: './',
+          describe:
+            'dest folder where the react native project will be extracted to',
+          type: 'string',
+        });
+    },
+    async (args) => {
+        prepareProject(args);
+    }
+  ).command('embed', '', (yargs) => {
+    yargs
+      .command(
+        'android [src]',
+        'Embed React Native project with Native Android project',
+        yargs => {},
+        (args) => {
+          args.platform = 'android';
+          return embed(args);
             }).command('ios [src]',
                 'Embed React Native project with Native iOS project.',
                 yargs => {},
