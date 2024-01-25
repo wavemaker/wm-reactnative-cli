@@ -130,9 +130,34 @@ function updateAppJsonFile(src) {
         response = await ejectProject(args);
     }
 
-    if (response && response.errors) {
-        return response;
+    if (args.dest) {
+      args.dest = path.resolve(args.dest) + '/';
     }
+
+  await prepareProject(args);
+   if (args.targetPhase === 'PREPARE')
+   {
+    return;
+   }
+   if (!args.autoEject) {
+    const response = await showConfirmation(
+      'Would you like to eject the expo project (yes/no) ?'
+    );
+    if (response !== 'y' && response !== 'yes') {
+      process.exit();
+    }
+  }
+  if (args.dest) {
+    if (!config.metaData.ejected) {
+      response = await ejectProject(args);
+    }
+  } else {
+    response = await ejectProject(args);
+  }
+
+  if (response && response.errors) {
+    return response;
+  }
 
     if (args.ejectProject || config.embed)  {
         return;
