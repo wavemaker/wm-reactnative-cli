@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-const { prepareProject, ejectProject, build, embed } = require('./src/command');
+const {
+    prepareProject, ejectProject, build, embed
+} = require('./src/command');
 const os = require('os');
 const { LocalStorage } = require('node-localstorage');
 const {

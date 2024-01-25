@@ -18,7 +18,6 @@ const config = require('./config');
 const ios = require('./ios');
 const { resolve } = require('path');
 const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
-const { prepareExpo } = require('./expo-launcher');
 const loggerLabel = 'wm-reactnative-cli';
 
 function getFileSize(path) {
