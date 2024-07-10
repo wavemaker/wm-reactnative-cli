@@ -309,6 +309,9 @@ async function setup(previewUrl, projectName, authToken) {
     if (authToken) {
         authToken = 'auth_cookie=' + authToken;
     }
+    if (previewUrl.endsWith('/')) {
+        previewUrl = previewUrl.slice(0, -1);
+    }
     const config = {
         authCookie : authToken || global.localStorage.getItem(STORE_KEY) || '',
         baseUrl: new URL(previewUrl).origin,
