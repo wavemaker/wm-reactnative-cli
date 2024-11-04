@@ -13,6 +13,7 @@ const {
 const { readAndReplaceFileContent, streamToString } = require('./utils');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
+let initialRun = true;
 let webPreviewPort = 19006;
 const proxyPort = 19009;
 let proxyUrl = `http://localhost:${proxyPort}`;
@@ -320,7 +321,8 @@ async function watchProjectChanges(previewUrl, onChange, lastModifiedOn) {
                 'if-modified-since' : lastModifiedOn || new Date().toString()
             }
         }).catch((e) => e.response);
-        if (response.status === 200 && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) {
+        if ((response.status === 200  && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) || (initialRun && response.status === 304)) {
+            initialRun = false;
             lastModifiedOn = response.headers['last-modified'];
             onChange();
         }
