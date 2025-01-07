@@ -36,6 +36,6 @@
     "yarn": "^1.22.10"
   },
   "devDependencies": {
-    "@wavemaker/rn-codegen": "^11.9.4-1.6000"
+    "@wavemaker/rn-codegen": "*"
   }
 }
