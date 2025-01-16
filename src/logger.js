@@ -75,6 +75,7 @@ logger.setLogDirectory = (path) => {
                     return Date.now();
                 },
                 format: combine(
+                    colorize(),
                     timestamp(),
                     consoleFormat
                 )
@@ -85,6 +86,7 @@ logger.setLogDirectory = (path) => {
                     return Date.now();
                 },
                 format: combine(
+                    colorize(),
                     timestamp(),
                     jsonFormat
                 )
