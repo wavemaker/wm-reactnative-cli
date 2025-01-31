@@ -19,6 +19,7 @@ updateNotifier({
 	defer: false
 });
 const prompt = require('prompt');
+const logger = require('./src/logger');
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -291,10 +292,21 @@ const args = require('yargs')
             describe: 'If set to true then all existing folders are removed.',
             default: false,
             type: 'boolean'
+        })
+        .option('verbose', {
+            describe: 'If set to true then all existing folders are removed.',
+            default: false,
+            type: 'boolean'
         });
     }, (args) => {
         if (args.clean) {
             localStorage.clear();
+        }
+        if(!args.verbose){
+            global.verbose = false;
+            logger.setVerbose(false);
+        }else{
+            global.verbose = true;
         }
         sync(args.previewUrl, args.clean, args.useProxy);
     })

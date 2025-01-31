@@ -86,4 +86,11 @@ logger.setLogDirectory = (path) => {
     });
 };
 
+// Add method to enable/disable logging
+logger.setVerbose = (verbose) => {
+    if (!verbose) {
+        logger.level = 'silent';
+    }
+};
+
 module.exports = logger;

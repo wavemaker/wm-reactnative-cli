@@ -9,6 +9,7 @@ const qs = require('qs');
 const semver = require('semver');
 const { exec } = require('./exec');
 const { unzip } = require('./zip');
+const taskLogger = require('./custom-logger/task-logger')();
 //const PULL_URL = '/studio/services/projects/${projectId}/vcs/remoteChanges';
 const STORE_KEY = 'user.auth.token';
 const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
@@ -48,6 +49,7 @@ async function downloadProject(projectId, config, projectDir) {
     try {
     const start = Date.now();
     logger.info({label: loggerLabel,message: 'downloading the project...'});
+    taskLogger.start("downloading the project...");
     const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
     if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
         const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitInit`, {
@@ -100,12 +102,14 @@ async function downloadProject(projectId, config, projectDir) {
         label: loggerLabel,
         message: `downloaded the project in (${Date.now() - start} ms).`
     });
+    taskLogger.succeed(`downloaded the project in (${Date.now() - start} ms).`);
     fs.unlink(tempFile);
     } catch (e) {
         logger.info({
             label: loggerLabel,
             message: e+` The download of the project has encountered an issue. Please ensure that the preview is active.`
         });
+        taskLogger.fail(e+` The download of the project has encountered an issue. Please ensure that the preview is active.`)
     }
 }
 
@@ -123,6 +127,7 @@ async function pullChanges(projectId, config, projectDir) {
     const headCommitId = output[0];
     logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
     logger.info({label: loggerLabel, message: 'pulling new changes from studio...'});
+    taskLogger.start('pulling new changes from studio...');
     const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
     if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
         const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
@@ -168,11 +173,13 @@ async function pullChanges(projectId, config, projectDir) {
         fs.unlink(tempFile);
     }
     fs.rmSync(tempDir, { recursive: true, force: true });
+    taskLogger.succeed('pulled new changes from studio');
     } catch (e) {
         logger.info({
             label: loggerLabel,
             message: e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`
         });
+        taskLogger.succeed( e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`);
     }
 }
 
@@ -325,6 +332,7 @@ async function setup(previewUrl, projectName, authToken) {
         config.authCookie = await authenticateWithToken(config, true);
     }
     global.localStorage.setItem(STORE_KEY, config.authCookie);
+    taskLogger.succeed("User Authenticated");
     return config;
 }
 
