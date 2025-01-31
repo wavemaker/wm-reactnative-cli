@@ -10,38 +10,59 @@ The main goal of wm-reactnative-cli is to simplify generation of APK or IPA for 
 npm install -g @wavemaker/wm-reactnative-cli
 ~~~
 
+### Adding Environment Variable
+
+#### For Windows
+
+-   Go to System Setting and Select Environment Variables.
+
+    ![Windows System settings](./assets/EnvironmentVariable.png)
+
+-   Select New Variable under the System section and add `WM_REACTNATIVE_CLI` and its respective path.
+
+    ![CLI System Variable](./assets/CLI-EnvironmentVariable.png)
+
+#### For Linux/MAC
+
+-   use nano ~/.bashrc then add the following at the end of the file (after updating the paths) and save it.
+
+~~~
+export WM_REACTNATIVE_CLI="$HOME/cli/"
+~~~
+
+**_NOTE:_** To avoid cmake errors caused due to long paths in Windows, we suggest making the cli path shorter using this variable
+
 ## Android Build
 
 ### Requirements
 
 -   Linux or MAC or Windows
--   Node 14.x ([https://nodejs.org/en/blog/release/v14.15.1/](https://nodejs.org/en/download/))
+-   Node 18.x ([https://nodejs.org/en/blog/release/v14.15.1/](https://nodejs.org/en/download/))
 -   GIT ([https://git-scm.com/download](https://git-scm.com/download))
--   Java 11 ([https://openjdk.org/install/](https://openjdk.org/install/))
+-   Java 17 ([https://openjdk.org/install/](https://openjdk.org/install/))
 -   Yarn (npm install -g yarn)
--   Gradle 7 ([https://gradle.org/releases/](https://gradle.org/releases/))
--   Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
+-   Gradle 8 ([https://gradle.org/releases/](https://gradle.org/releases/))
 -   Make sure JAVA_HOME, ANDROID_SDK and GRADLE_HOME are set in the environment variables and also in PATH.
 
 #### Adding Environment Variables
 
 #### For Windows
 
--   Go to System Setting and Select Environment Varialbes.
+-   Go to System Setting and Select Environment Variables.
     
     ![Windows System settings](./assets/EnvironmentVariable.png)
--   Select New Variable under System section and add variables and their respective paths.
+-   Select New Variable under the System section and add variables and their respective paths.
     ![New System Variable](./assets/EnvironmentVariable1.png)
 
 #### For Linux/MAC
 
 -   use nano ~/.bashrc then add the following at the end of the file (after updating the paths) and save it.
 ~~~
-export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
 export ANDROID_HOME="/usr/lib/android-sdk"
 export ANDROID_SDK="/usr/lib/android-sdk"
 export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
-export GRADLE_HOME="$HOME/gradle/gradle-7.5.1"
+export GRADLE_HOME="$HOME/gradle/gradle-8.2.1"
 ~~~
 
 ### Command
@@ -85,15 +106,15 @@ wm-reactnative build android "/path/to/src" \
 -   MAC machine
 -   Latest XCODE
 -   CocoaPods ([https://guides.cocoapods.org/using/getting-started.html#toc_3](https://guides.cocoapods.org/using/getting-started.html#toc_3))
--   Node 14.x ([https://nodejs.org/en/blog/release/v12.22.0/](https://nodejs.org/en/download/))
+-   Node 18.x ([https://nodejs.org/en/blog/release/v12.22.0/](https://nodejs.org/en/download/))
 -   GIT ([https://git-scm.com/download/mac](https://git-scm.com/download/mac))
 -   Yarn (npm install -g yarn)
--   Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
 -   Apple developer or distribution P12 certificates
 -   Provisioning profile
 -   Install wm-reactnative-cli (npm install -g @wavemaker/wm-reactnative-cli)
 -   For development build, development certificate and development provisioning file are required.
 -   For production build, distribution certificate and distribution provisioning file are required.
+-   Use Libre SSL (brew install libressl). Make sure openssl (openssl version) should use Libre ssl.
 
 **NOTE:** Before building an app, please make sure that neither iPhone nor iPad is not connected to Mac.
 
@@ -110,7 +131,6 @@ wm-reactnative build ios <src_dir> [additional_arguments]
 |**\-\-iCertificate**|Absolute path of P12 certificate location|
 |**\-\-iCertificatePassword**|Password to unlock the certificate.|
 |**\-\-iProvisioningFile**|Absolute path of provisioning file|
-|**\-\-iCodeSigningIdentity**|Signing certificate name in keychain access|
 |**\-\-buildType**|**DEFAULT:** development<bR>development or production <br>Use ‘production’ with an AppStore distribution certificate.|
 
 
@@ -122,37 +142,18 @@ wm-reactnative build ios "/path/to/src" \
 --iCertificate="/path/to/distribution.p12" \
 --iCertificatePassword="unlock_password" \
 --iProvisioningFile="/path/to/profile.mobileprovision" \
---iCodeSigningIdentity="certificate name in keychain access" \
 --buildType="production"
 ~~~
 
 
-## Run Expo
-
-### Requirements
-- Node 14.x
-- GIT ([https://git-scm.com/download](https://git-scm.com/download))
-- npm 7.20.x
-- Yarn (npm install -g yarn)
-- Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
-
-### Command
-
-wm-reactnative run expo <preview_url> [additional_arguments]
-
-|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
-|--|--|
-| **preview_url** | app preview url |
-|**\-\-clean**|**DEFAULT:** false <br> if true, existing project directory is removed |
-
 ## Run web-preview
 
 ### Requirements
-- Node 14.x
+- Node >= 18.16.1 
 - GIT ([https://git-scm.com/download](https://git-scm.com/download))
-- npm 7.20.x
+- npm 9.5.x
 - Yarn (npm install -g yarn)
-- Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
+- Expo cli (npm install -g expo-cli@latest)
 
 ### Command
 
@@ -163,50 +164,67 @@ wm-reactnative run web-preview <preview_url> [additional_arguments]
 | **preview_url** | app preview url |
 |**\-\-clean**|**DEFAULT:** false <br> if true, existing project directory is removed |
 
-## Run Android
-
--   Linux or MAC or Windows
--   Node 14.x ([https://nodejs.org/en/blog/release/v14.15.1/](https://nodejs.org/en/download/))
--   GIT ([https://git-scm.com/download](https://git-scm.com/download))
--   Java 11 ([https://openjdk.org/install/](https://openjdk.org/install/))
--   Yarn (npm install -g yarn)
--   Gradle 7 ([https://gradle.org/releases/](https://gradle.org/releases/))
--   Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
--   Make sure JAVA_HOME, ANDROID_SDK and GRADLE_HOME are set in the environment variables and also in PATH.
-
-### Command
-
-wm-reactnative run android <preview_url> [additional_arguments]
-
-|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
-|--|--|
-| **preview_url** | app preview url |
-|**\-\-clean**|**DEFAULT:** false <br> if true, existing project directory is removed |
-
-
-## Run iOS
+## Sync
 
 ### Requirements
-
--   MAC machine
--   Latest XCODE
--   CocoaPods ([https://guides.cocoapods.org/using/getting-started.html#toc_3](https://guides.cocoapods.org/using/getting-started.html#toc_3))
--   Node 14.x ([https://nodejs.org/en/blog/release/v12.22.0/](https://nodejs.org/en/download/))
--   GIT ([https://git-scm.com/download/mac](https://git-scm.com/download/mac))
--   Yarn (npm install -g yarn)
--   Expo cli 5.4.4 (npm install -g expo-cli@5.4.4)
-
-
+- Node >= 18.16.1 
+- GIT ([https://git-scm.com/download](https://git-scm.com/download))
+- npm 9.5.x
+- Yarn (npm install -g yarn)
+- Expo cli (npm install -g expo-cli@latest)
 
 ### Command
 
-wm-reactnative run ios <preview_url> [additional_arguments]
+wm-reactnative sync <preview_url> [additional_arguments]
 
 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
 |--|--|
 | **preview_url** | app preview url |
 |**\-\-clean**|**DEFAULT:** false <br> if true, existing project directory is removed |
+|**\-\-useProxy**|**DEFAULT:** false <br> if true, then all preview requests are routed through a internal proxy server. |
 
+After the build is complete:
+
+- Locate the directory where the Expo app has been generated in command logs.
+- Use the cd command to navigate to the generated Expo app directory:
+~~~
+cd <path-to-generated-expo-app>
+~~~
+## Expo Preview
+### Start the Expo Metro bundler 
+
+~~~
+npm start
+~~~
+
+## React Native Preview
+
+Eject the Expo app to a React Native app by executing the below command (generate android and ios folders)
+~~~
+npx expo prebuild
+~~~
+
+
+### Start the React Native Metro bundler
+~~~
+npx react-native start
+~~~
+
+### Build and run the app on an Android device/emulator
+~~~
+npx react-native run-android
+~~~
+
+### Build and run the app on an iOS device/simulator
+~~~
+npx react-native run-ios
+~~~
+
+## Run Expo (Deprecated)
+
+## Run Android (Deprecated)
+
+## Run iOS (Deprecated)
 
 ## Additional Information
 
