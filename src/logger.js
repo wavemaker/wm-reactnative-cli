@@ -57,6 +57,7 @@ var logger = createLogger({
 logger.setLogDirectory = (path) => {
     logger.configure({
         level: 'debug',
+        silent: !global.verbose,
         transports: [
             new(transports.Console)({
                 silent: !global.verbose,
