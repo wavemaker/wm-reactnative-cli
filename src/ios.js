@@ -13,6 +13,7 @@ const {
  } = require('./requirements');
  const { readAndReplaceFileContent, iterateFiles } = require('./utils');
  const { newPostInstallBlock } =  require('../templates/ios-build-patch/podFIlePostInstall');
+const taskLogger = require('./custom-logger/task-logger')();
 
  const loggerLabel = 'Generating ipa file';
 
@@ -152,6 +153,7 @@ async function embed(args) {
 }
 
 async function invokeiosBuild(args) {
+    taskLogger.info("Invoke IOS build")
     const certificate = args.iCertificate;
     const certificatePassword = args.iCertificatePassword;
     const provisionalFile = args.iProvisioningFile;
@@ -177,11 +179,13 @@ async function invokeiosBuild(args) {
             label: loggerLabel,
             message: `provisional UUID : ${provisionuuid}`
         });
+        taskLogger.info(`provisional UUID : ${provisionuuid}`);
         const developmentTeamId = await extractTeamId(provisionalFile);
         logger.info({
             label: loggerLabel,
             message: `developmentTeamId : ${developmentTeamId}`
         });
+        taskLogger.info(`developmentTeamId : ${developmentTeamId}`);
         const ppFolder = `/Users/${username}/Library/MobileDevice/Provisioning\ Profiles`;
         fs.mkdirSync(ppFolder, {
             recursive: true
@@ -192,6 +196,7 @@ async function invokeiosBuild(args) {
             label: loggerLabel,
             message: `copied provisionalFile (${provisionalFile}).`
         });
+        taskLogger.info(`copied provisionalFile (${provisionalFile}).`);
         const removeKeyChain = await importCertToKeyChain(keychainName, certificate, certificatePassword);
 
         try {
@@ -308,6 +313,7 @@ function findFile(path, nameregex) {
 
 async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVELOPMENT_TEAM) {
     try {
+        taskLogger.start('Building iOS application...');
         let xcworkspacePath = findFile(config.src + 'ios', /\.xcworkspace?/) || findFile(config.src + 'ios', /\.xcodeproj?/);
         if (!xcworkspacePath) {
             return {
@@ -389,11 +395,13 @@ async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVEL
                 output: outputFilePath
             }
         }
+        taskLogger.succeed('Build successful')
     } catch (e) {
         logger.error({
             label: loggerLabel,
             message: e
         });
+        taskLogger.fail(e);
         console.error(e);
         return {
             errors: e,

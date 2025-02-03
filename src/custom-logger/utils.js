@@ -46,6 +46,55 @@ const syncSteps = [
   },
 ]
 
+const buildSteps = [
+  {
+    step: 1,
+    start: "Initializing project structure...",
+    stop: "",
+    succeed: "Project directories successfully set up.",
+    fail: "Failed to set up project directories.",
+    info: "",
+    warn: "",
+  },
+  {
+    step: 2,
+    start: "Verifying prerequisites...",
+    stop: "",
+    succeed: "All required prerequisites are met.",
+    fail: "Missing or incompatible prerequisites detected.",
+    info: "",
+    warn: "",
+  },
+  {
+    step: 3,
+    start: "Installing dependencies...",
+    stop: "",
+    succeed: "All dependencies installed successfully.",
+    fail: "Dependency installation failed.",
+    info: "",
+    warn: "",
+  },
+  {
+    step: 4,
+    start: "Ejecting project configuration...",
+    stop: "",
+    succeed: "Project ejected successfully.",
+    fail: "Project ejection failed.",
+    info: "",
+    warn: "",
+  },
+  {
+    step: 5,
+    start: "Building Android/iOS application...",
+    stop: "",
+    succeed: "Build successful! APK/IPA generated.",
+    fail: "Build failed! Error generating APK/IPA.",
+    info: "",
+    warn: "",
+  },
+];
+
+
 
 module.exports={
   syncSteps

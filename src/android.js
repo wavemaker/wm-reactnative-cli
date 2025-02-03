@@ -11,6 +11,7 @@ const {
     checkForAndroidStudioAvailability
 } = require('./requirements');
 const { readAndReplaceFileContent } = require('./utils');
+const taskLogger = require("./custom-logger/task-logger")();
 
 const loggerLabel = 'android-build';
 
@@ -391,6 +392,7 @@ async function invokeAndroidBuild(args) {
     const appName = config.metaData.name;
     updateSettingsGradleFile(appName);
     if (args.buildType === 'release') {
+        taskLogger.start("Building Android release application...")
         const errors = validateForAndroid(keyStore, storePassword, keyAlias, keyPassword);
         if (errors.length > 0) {
             return {
@@ -403,6 +405,7 @@ async function invokeAndroidBuild(args) {
         updateAndroidBuildGradleFile(args.buildType);
         await generateSignedApk(keyStore, storePassword, keyAlias, keyPassword, args.packageType);
     } else {
+        taskLogger.start("Building Android debug application...")
         await updateAndroidBuildGradleFile(args.buildType);
         logger.info({
             label: loggerLabel,
@@ -414,6 +417,7 @@ async function invokeAndroidBuild(args) {
         });
     } catch(e) {
         console.error('error generating release apk. ', e);
+        taskLogger.fail('error generating release apk. '+e);
         return {
             success: false,
             errors: e
@@ -424,6 +428,7 @@ async function invokeAndroidBuild(args) {
         label: loggerLabel,
         message: 'build completed'
     });
+    taskLogger.succeed('build completed')
     const output = args.dest + 'output/android/';
     const outputFilePath = `${output}${appName}(${config.metaData.version}).${args.buildType}.${args.packageType === 'bundle' ? 'aab': 'apk'}`;
 

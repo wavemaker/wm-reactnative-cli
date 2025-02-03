@@ -17,6 +17,7 @@ const config = require('./config');
 const ios = require('./ios');
 const { resolve } = require('path');
 const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
+const taskLogger = require('./custom-logger/task-logger')();
 const loggerLabel = 'wm-reactnative-cli';
 
 function getFileSize(path) {
@@ -124,7 +125,8 @@ function updateAppJsonFile(src) {
      
      if (args.dest) {
         args.dest = path.resolve(args.dest) + '/';
-}
+     }
+    taskLogger.succeed("Setup directories finished");
 
     await prepareProject(args);
     if (args.targetPhase === 'PREPARE')
@@ -180,15 +182,22 @@ function updateAppJsonFile(src) {
         message: `Building at : ${config.src}`
     });
 
+    taskLogger.info(`Building at : ${config.src}`);
+
     try {
         let result;
         // await clearUnusedAssets(config.platform);
         if (config.platform === 'android') {
             result = await android.invokeAndroidBuild(args);
         } else if (config.platform === 'ios') {
-            await exec('pod', ['install'], {
-                cwd: config.src + 'ios'
-            });
+            try{
+                taskLogger.start("Installing pods....")
+                await exec('pod', ['install'], {
+                    cwd: config.src + 'ios'
+                });
+            }catch(e){
+                taskLogger.fail("Pod install failed");
+            }
             result = await ios.invokeiosBuild(args);
         }
         if (result.errors && result.errors.length) {
@@ -196,20 +205,24 @@ function updateAppJsonFile(src) {
                 label: loggerLabel,
                 message: args.platform + ' build failed due to: \n\t' + result.errors.join('\n\t')
             });
+            taskLogger.fail(args.platform + ' build failed due to: \n\t' + result.errors.join('\n\t'));
         } else if (!result.success) {
             logger.error({
                 label: loggerLabel,
                 message: args.platform + ' BUILD FAILED'
             });
+            taskLogger.fail(args.platform + ' BUILD FAILED');
         } else {
             logger.info({
                 label: loggerLabel,
                 message: `${args.platform} BUILD SUCCEEDED. check the file at : ${result.output}.`
             });
+            taskLogger.info(`${args.platform} BUILD SUCCEEDED. check the file at : ${result.output}.`);
             logger.info({
                 label: loggerLabel,
                 message: `File size : ${Math.round(getFileSize(result.output) * 100 / (1024 * 1024)) / 100} MB.`
             });
+            taskLogger.info(`File size : ${Math.round(getFileSize(result.output) * 100 / (1024 * 1024)) / 100} MB.`);
         }
         return result;
     } catch(e) {
@@ -217,6 +230,7 @@ function updateAppJsonFile(src) {
             label: loggerLabel,
             message: 'BUILD Failed. Due to :' + e
         });
+        taskLogger.fail('BUILD Failed. Due to :' + e);
         return {
             success : false,
             errors: e
@@ -378,23 +392,28 @@ async function ejectProject(args) {
                 label: loggerLabel,
                 message: 'copied the app-rn-runtime folder',
             });
+            taskLogger.info("copied the app-rn-runtime folder");
         }
+        taskLogger.succeed("Project ejected successfully.");
     } catch (e) {
         logger.error({
             label: loggerLabel,
             message: args.platform + ' eject project Failed. Due to :' + e,
         });
+        taskLogger.fail("Project ejection failed.");
         return { errors: e, success: false };
     }
 }
 
 async function prepareProject(args) {
     try {
+        taskLogger.start("Verifying prerequisites...");
         config.src = args.dest;
         logger.info({
             label: loggerLabel,
             message: 'destination folder where app is build at ' + args.dest,
         });
+        taskLogger.info('destination folder where app is build at ' + args.dest);
         if (!args.platform) {
             args.platform = 'android';
         }
@@ -423,20 +442,28 @@ async function prepareProject(args) {
                 return prerequisiteError;
             }
         }
+        taskLogger.succeed("All required prerequisites are met.");
+        taskLogger.start("Installing dependencies...");
         updateAppJsonFile(config.src);
         logger.info({
             label: loggerLabel,
             message: 'app.json updated.... ' + args.dest
         })
         await updatePackageJsonFile(config.src + 'package.json');
-        await exec('yarn', ['install'], {
-            cwd: config.src
-        });
+        try{
+            await exec('yarn', ['install'], {
+                cwd: config.src
+            });
+        }catch(e){
+            taskLogger.fail("Dependency installation failed.");
+        }
+        taskLogger.succeed("All dependencies installed successfully.")
     } catch (e) {
         logger.error({
             label: loggerLabel,
             message: args.platform + ' prepare project Failed. Due to :' + e,
         });
+        taskLogger.fail(args.platform + ' prepare project Failed. Due to :' + e);
         return { errors: e, success : false };
     }
 }

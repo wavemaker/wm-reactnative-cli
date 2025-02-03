@@ -78,6 +78,7 @@ const args = require('yargs')
                 })
             }, args => {
                 args.platform = 'android';
+                global.verbose = args.verbose;
                 build(args)
             })
             .command('ios [src] [options]', 'build for iOS', yargs => {
@@ -98,6 +99,7 @@ const args = require('yargs')
                 });
             }, args => {
                 args.platform = 'ios';
+                global.verbose = args.verbose;
                 build(args)
             })
             yargs.positional('src', {
@@ -137,6 +139,11 @@ const args = require('yargs')
                 default: false,
                 type: 'boolean'
             })
+            .option('verbose', {
+                describe: 'If set to true, then detailed logs will be displayed.',
+                default: false,
+                type: 'boolean'
+            });
     })
     .command('eject expo [src] [dest]',
         'Removes Expo and generate pure react native project.',
@@ -294,7 +301,7 @@ const args = require('yargs')
             type: 'boolean'
         })
         .option('verbose', {
-            describe: 'If set to true then all existing folders are removed.',
+            describe: 'If set to true, then detailed logs will be displayed.',
             default: false,
             type: 'boolean'
         });
@@ -302,12 +309,7 @@ const args = require('yargs')
         if (args.clean) {
             localStorage.clear();
         }
-        if(!args.verbose){
-            global.verbose = false;
-            logger.setVerbose(false);
-        }else{
-            global.verbose = true;
-        }
+        global.verbose = args.verbose;
         sync(args.previewUrl, args.clean, args.useProxy);
     })
     .help('h')
