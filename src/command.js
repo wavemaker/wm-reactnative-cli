@@ -171,12 +171,13 @@ function updateAppJsonFile(src) {
         });
     }
 
-    if(args.architecture && args.platform==='android') {
-        await readAndReplaceFileContent(`${config.src}/android/gradle.properties`, content => {
-            return content.replace(/^reactNativeArchitectures=.*$/m,`reactNativeArchitectures=${args.architecture.join(',')}`);
-        })
+    if(args.architecture) {
+        if(args.platform==='android'){
+            await readAndReplaceFileContent(`${config.src}/android/gradle.properties`, content => {
+                return content.replace(/^reactNativeArchitectures=.*$/m,`reactNativeArchitectures=${args.architecture.join(',')}`);
+            })
+        }
     }
-
     config.outputDirectory = config.src + 'output/';
     config.logDirectory = config.outputDirectory + 'logs/';
     logger.info({
