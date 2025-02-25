@@ -80,7 +80,7 @@ wm-reactnative build android <src_dir> [additional_arguments]
 |**\-\-aKeyAlias**|Alias name of the key|
 |**\-\-aKeyPassword**|Key Password|
 |**\-\-buildType**|**DEFAULT:** development<br>development or production<br>Use ‘production’ with keystore specified.|
-|**\-\-architecture**|Specifies the target Application Binary Interfaces (ABIs) for the build.<br>**DEFAULT:** All <br>**CHOICES:** armeabi-v7a, arm64-v8a, x86, x86_64.|
+|**\-\-architecture**|Specifies the target Application Binary Interfaces (ABIs) for the build.<br>**DEFAULT:** All <br>**CHOICES:** armeabi-v7a, arm64-v8a, x86, x86_64. <br>**Example for single ABI:** --architecture=armeabi-v7a <br>**Example for multiple ABIs:** --architecture=armeabi-v7a  --architecture=arm64-v8a |
 
 
 ### Example 1
