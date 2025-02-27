@@ -387,9 +387,15 @@ async function ejectProject(args) {
         taskLogger.setTotal(androidBuildSteps[3].total);
         taskLogger.start(androidBuildSteps[3].start);
         taskLogger.incrementProgress(1);
-        await exec('npx', ['expo','prebuild'], {
-            cwd: config.src
-        });
+        if(args.platform){
+            await exec('npx', ['expo','prebuild', "--platform", args.platform], {
+                cwd: config.src
+            });
+        }else{
+            await exec('npx', ['expo','prebuild'], {
+                cwd: config.src
+            });
+        }
         taskLogger.incrementProgress(1);
         logger.info({
             label: loggerLabel,
