@@ -19,6 +19,8 @@ updateNotifier({
 	defer: false
 });
 const prompt = require('prompt');
+const path = require('path');
+const { generateTheme, compileTheme, updateTheme, updateThemeArtifacts }=require("./src/theme");
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -297,6 +299,63 @@ const args = require('yargs')
             localStorage.clear();
         }
         sync(args.previewUrl, args.clean, args.useProxy);
+    })
+    .command('theme', 'Theme commands', (yargs) => {
+        yargs.command('generate <name> [path]',
+            'to generate theme',
+            (yargs) => {
+                yargs.positional('name', {
+                    describe: 'name of the theme',
+                    type: 'string'
+                }).positional('path', {
+                    describe: 'Folder at which the theme has to be created.',
+                    type: 'string',
+                    default: '.',
+                    normalize: true,
+                    coerce: (p) => path.resolve(p)
+                });
+        }, (argv) => {
+            generateTheme(argv.name, argv.path);
+        }).command('compile [path]',
+            'to compile theme',
+            (yargs) => {
+                yargs.positional('path', {
+                    describe: 'path of theme project',
+                    type: 'string',
+                    default: '.',
+                    normalize: true,
+                    coerce: (p) => path.resolve(p)
+                }).option('updatePlatform', {
+                    describe: 'path of theme project',
+                    type: 'string',
+                    default: false,
+                    normalize: true
+                });
+        }, (argv) => {
+            compileTheme(argv.path);
+        }).command('update [path]',
+            'to update wavemaker theme',
+            (yargs) => {
+                yargs.positional('path', {
+                    describe: 'path of theme project',
+                    type: 'string',
+                    default: '.',
+                    normalize: true,
+                    coerce: (p) => path.resolve(p)
+                });
+        }, (argv) => {
+            updateTheme(argv.path)
+        }).command('update-artifacts [path]',
+            'to update themes in artifacts.',
+            (yargs) => {
+                yargs.positional('path', {
+                    describe: 'path to the folder in which themes are found',
+                    type: 'string',
+                    normalize: true
+                });
+            }, (argv) => {
+                updateThemeArtifacts(argv.path)
+        });
     })
     .help('h')
     .alias('h', 'help').argv;

@@ -230,6 +230,10 @@ async function canDoAndroidBuild() {
     return flag;
 }
 
+async function hasWavemakerCodegen(){
+    return await checkAvailability('npx wm-rn-codegen');
+}
+
 module.exports = {
     validateForIos: validateForIos,
     validateForAndroid: validateForAndroid,
@@ -245,6 +249,7 @@ module.exports = {
     VERSIONS: VERSIONS,
     canDoEmbed: canDoEmbed,
     canDoIosBuild: canDoIosBuild,
-    canDoAndroidBuild: canDoAndroidBuild
+    canDoAndroidBuild: canDoAndroidBuild,
+    hasWavemakerCodegen: hasWavemakerCodegen,
 }
 // TODO: support for multiple react native versions.
