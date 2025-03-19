@@ -17,9 +17,8 @@ const config = require('./config');
 const ios = require('./ios');
 const { resolve } = require('path');
 const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
-const taskLogger = require('./custom-logger/task-logger')({
-    showProgressBar : true
-});
+const chalk = require('chalk');
+const taskLogger = require('./custom-logger/task-logger')();
 const loggerLabel = 'wm-reactnative-cli';
 const {androidBuildSteps} = require('./custom-logger/steps');
 
@@ -301,7 +300,7 @@ async function setupBuildDirectory(src, dest, platform) {
                 label: loggerLabel,
                 message: 'source and destination folders are same. Please choose a different destination.'
             });
-            taskLogger.warn('source and destination folders are same. Please choose a different destination.');
+            taskLogger.fail('source and destination folders are same. Please choose a different destination.');
             return;
         }
         taskLogger.incrementProgress(1);
@@ -312,14 +311,16 @@ async function setupBuildDirectory(src, dest, platform) {
         fs.mkdirSync(logDirectory, {
             recursive: true
         });
+        global.logDirectory = logDirectory;
         logger.setLogDirectory(logDirectory);
-        taskLogger.info("log directory = "+ logDirectory);
+        taskLogger.info("Full log details can be found in: " + logDirectory);
         return {
             src: src,
             dest: dest
         };
     }catch(e){
-        taskLogger.fail(androidBuildSteps[0].fail+ e.message);
+        console.log(e.message);
+        taskLogger.fail("Setup directories failed. " + chalk.gray("Due to : ")  + chalk.cyan(e.message));
     }
 }
 
@@ -475,9 +476,13 @@ async function prepareProject(args) {
             await exec('yarn', ['install'], {
                 cwd: config.src
             });
-            taskLogger.succeed(androidBuildSteps[2].succeed)
+            taskLogger.succeed("All dependencies installed successfully.")
         }catch(e){
-            taskLogger.fail(androidBuildSteps[2].fail);
+            logger.error({
+                label: loggerLabel,
+                message: "Dependency installation failed. Due to : "+ e,
+            });
+            taskLogger.fail("Dependency installation failed. Due to : "+ e);
         }
     } catch (e) {
         logger.error({

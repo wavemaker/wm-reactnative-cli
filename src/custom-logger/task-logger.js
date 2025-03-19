@@ -54,12 +54,11 @@ class CustomSpinnerBar {
     fail(text) {
         if (global.verbose) return this;
         this.stop();
-        let output = `${chalk.red("✖")} ${text || this.text}`;
+        let finalText = text || this.text;
         if(global.logDirectory){
-            output += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
+            finalText += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
         }
-        output += this.progressBar.render();
-        this.stream.write(`${output}\n`);
+        this.stream.write(`${chalk.red('✖')} ${chalk.bold.red(finalText)}\n`);
         return this;
     }
 
