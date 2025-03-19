@@ -11,7 +11,10 @@ const {
     checkForAndroidStudioAvailability
 } = require('./requirements');
 const { readAndReplaceFileContent } = require('./utils');
-const taskLogger = require("./custom-logger/task-logger")();
+const taskLogger = require("./custom-logger/task-logger")({
+    showProgressBar : true
+});
+const { androidBuildSteps } = require('./custom-logger/steps');
 
 const loggerLabel = 'android-build';
 
@@ -392,7 +395,9 @@ async function invokeAndroidBuild(args) {
     const appName = config.metaData.name;
     updateSettingsGradleFile(appName);
     if (args.buildType === 'release') {
-        taskLogger.start("Building Android release application...")
+        taskLogger.resetProgressBar();
+        taskLogger.setTotal(androidBuildSteps[4].total);
+        taskLogger.start(androidBuildSteps[4].start + ":" + args.buildType);
         const errors = validateForAndroid(keyStore, storePassword, keyAlias, keyPassword);
         if (errors.length > 0) {
             return {
@@ -403,21 +408,26 @@ async function invokeAndroidBuild(args) {
         addProguardRule();
         updateOptimizationFlags();
         updateAndroidBuildGradleFile(args.buildType);
+        taskLogger.incrementProgress(1);
         await generateSignedApk(keyStore, storePassword, keyAlias, keyPassword, args.packageType);
     } else {
-        taskLogger.start("Building Android debug application...")
+        taskLogger.resetProgressBar();
+        taskLogger.setTotal(androidBuildSteps[4].total);
+        taskLogger.start(androidBuildSteps[4].start + ":" + args.buildType);
         await updateAndroidBuildGradleFile(args.buildType);
         logger.info({
             label: loggerLabel,
             message: 'Updated build.gradle file with debug configuration'
         });
+        taskLogger.incrementProgress(0.5)
         try {
         await exec('./gradlew', ['assembleDebug'], {
             cwd: config.src + 'android'
         });
+        taskLogger.incrementProgress(1.2)
     } catch(e) {
         console.error('error generating release apk. ', e);
-        taskLogger.fail('error generating release apk. '+e);
+        taskLogger.fail('error generating debug apk. '+e);
         return {
             success: false,
             errors: e

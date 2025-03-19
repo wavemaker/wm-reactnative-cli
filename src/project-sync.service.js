@@ -104,6 +104,18 @@ async function downloadProject(projectId, config, projectDir) {
     });
     taskLogger.succeed(`downloaded the project in (${Date.now() - start} ms).`);
     fs.unlink(tempFile);
+        
+    const logDirectory = projectDir + '/output/logs/';
+    fs.mkdirSync(logDirectory, {
+        recursive: true
+    });
+    logger.info({
+        label: loggerLabel,
+        message: 'log directory = '+ logDirectory
+    });
+    global.logDirectory = logDirectory;
+    logger.setLogDirectory(logDirectory);
+    taskLogger.info("Full log details can be found in: " + logDirectory);
     } catch (e) {
         logger.info({
             label: loggerLabel,
@@ -114,7 +126,7 @@ async function downloadProject(projectId, config, projectDir) {
 }
 
 async function gitResetAndPull(tempDir, projectDir){
-    await exec('git', ['clean', '-fd'], {cwd: projectDir});
+    await exec('git', ['clean', '-fd', '-e', 'output'], {cwd: projectDir});
     await exec('git', ['fetch', path.join(tempDir, 'remoteChanges.bundle'), 'refs/heads/master'], {cwd: projectDir});
     await exec('git', ['reset', '--hard', 'FETCH_HEAD'], {cwd: projectDir});
 }

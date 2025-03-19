@@ -2,6 +2,11 @@ const execa = require('execa');
 const logger = require('./logger');
 const loggerLabel = 'exec';
 
+function isErrorWithoutWarning(v) {
+    const lowerV = v.toLowerCase();
+    return lowerV.includes("error") && (!lowerV.includes("warning") && !lowerV.includes("warn"));
+}
+
 class OutputPipe {
     constructor(bufferSize, log, loggerLabel) {
         this.output = '';
@@ -14,7 +19,7 @@ class OutputPipe {
         let reminder = '';
         str.split('\n').forEach((v, i, splits) => {
             if (i < splits.length - 1) {
-                v && (this.logOutput || isErrorType) && logger.debug({label: this.loggerLabel, message: v});
+                v && (this.logOutput || isErrorType) && (isErrorType && isErrorWithoutWarning(v) ? logger.error({label: this.loggerLabel, message: v}) : logger.debug({label: this.loggerLabel, message: v}));
                 if (this.content.length > this.bufferSize) {
                     this.content.shift();
                 }

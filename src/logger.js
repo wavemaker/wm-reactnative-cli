@@ -10,12 +10,17 @@ const {
     printf
 } = format;
 
+const taskLogger = require('./custom-logger/task-logger')();
+
 const consoleFormat = printf(({
     level,
     message,
     label,
     timestamp
 }) => {
+    if(level === 'error'){
+        taskLogger.warn(message);
+    }
     return `${timestamp} [${label}] [${level}]: ${message}`;
 });
 
@@ -52,9 +57,9 @@ var logger = createLogger({
 logger.setLogDirectory = (path) => {
     logger.configure({
         level: 'debug',
-        silent: !global.verbose,
         transports: [
             new(transports.Console)({
+                silent: !global.verbose,
                 timestamp: function () {
                     return Date.now();
                 },
@@ -83,13 +88,17 @@ logger.setLogDirectory = (path) => {
                     timestamp(),
                     jsonFormat
                 )
+            }),
+            new transports.File({
+                filename: path + '/error.log',
+                level: 'error',
+                format: combine(
+                    timestamp(),
+                    consoleFormat
+                ),
             })
         ]
     });
 };
-
-// logger.setVerbose = (verbose) => {
-//     logger.silent = !verbose;
-// };
 
 module.exports = logger;

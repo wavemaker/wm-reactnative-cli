@@ -17,8 +17,11 @@ const config = require('./config');
 const ios = require('./ios');
 const { resolve } = require('path');
 const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger')({
+    showProgressBar : true
+});
 const loggerLabel = 'wm-reactnative-cli';
+const {androidBuildSteps} = require('./custom-logger/steps');
 
 function getFileSize(path) {
     const stats = path && fs.statSync(path);
@@ -126,7 +129,7 @@ function updateAppJsonFile(src) {
      if (args.dest) {
         args.dest = path.resolve(args.dest) + '/';
      }
-    taskLogger.succeed("Setup directories finished");
+    taskLogger.succeed(androidBuildSteps[0].succeed);
 
     await prepareProject(args);
     if (args.targetPhase === 'PREPARE')
@@ -259,52 +262,65 @@ async function extractRNZip(src)  {
 }
 
 async function setupBuildDirectory(src, dest, platform) {
-    src = await extractRNZip(src);
-    const metadata = await readWmRNConfig(src);
-    if (fs.existsSync(dest)) {
-        if (fs.readdirSync(dest).length) {
-            const response = await showConfirmation('Would you like to empty the dest folder (i.e. ' + dest + ') (yes/no) ?');
-            if (response !== 'y' && response !== 'yes') {
-                // logger.error({
-                //     label: loggerLabel,
-                //     message: 'Non empty folder cannot be used as desination. Please choose a different destination and build again.'
-                // });
-                // return;
-            }else{
+    try{
+        taskLogger.setTotal(androidBuildSteps[0].total);
+        taskLogger.start(androidBuildSteps[0].start);
+        src = await extractRNZip(src);
+        taskLogger.incrementProgress(1);
+        const metadata = await readWmRNConfig(src);
+        taskLogger.incrementProgress(1);
+        if (fs.existsSync(dest)) {
+            if (fs.readdirSync(dest).length) {
+                const response = await showConfirmation('Would you like to empty the dest folder (i.e. ' + dest + ') (yes/no) ?');
+                if (response !== 'y' && response !== 'yes') {
+                    logger.error({
+                        label: loggerLabel,
+                        message: 'Non empty folder cannot be used as desination. Please choose a different destination and build again.'
+                    });
+                    taskLogger.fail("Non empty folder cannot be used as desination. Please choose a different destination and build again.")
+                    return;
+                }
                 // using removeSync when dest is directory and unlinkSync works when dest is file.
                 const fsStat = fs.lstatSync(dest);
                 if (fsStat.isDirectory()) {
                     fs.removeSync(dest);
                 } else if (fsStat.isFile()) {
                     fs.unlinkSync(dest);
-                }   
+                }
             }
         }
-    }
-    dest = dest || await getDefaultDestination(metadata.id, platform);
-    if(isWindowsOS()){
-        const buildDirHash = crypto.createHash("shake256", { outputLength: 8 }).update(dest).digest("hex");
-        dest = path.resolve(`${global.rootDir}/wm-build/` + buildDirHash + "/");
-    }
-    dest = path.resolve(dest)  + '/';
-    if(src === dest) {
-        logger.error({
-            label: loggerLabel,
-            message: 'source and destination folders are same. Please choose a different destination.'
+        taskLogger.incrementProgress(1);
+        dest = dest || await getDefaultDestination(metadata.id, platform);
+        if(isWindowsOS()){
+            const buildDirHash = crypto.createHash("shake256", { outputLength: 8 }).update(dest).digest("hex");
+            dest = path.resolve(`${global.rootDir}/wm-build/` + buildDirHash + "/");
+        }
+        dest = path.resolve(dest)  + '/';
+        if(src === dest) {
+            logger.error({
+                label: loggerLabel,
+                message: 'source and destination folders are same. Please choose a different destination.'
+            });
+            taskLogger.warn('source and destination folders are same. Please choose a different destination.');
+            return;
+        }
+        taskLogger.incrementProgress(1);
+        fs.mkdirsSync(dest);
+        fs.copySync(src, dest);
+        taskLogger.incrementProgress(1);
+        const logDirectory = dest + 'output/logs/';
+        fs.mkdirSync(logDirectory, {
+            recursive: true
         });
-        return;
+        logger.setLogDirectory(logDirectory);
+        taskLogger.info("log directory = "+ logDirectory);
+        return {
+            src: src,
+            dest: dest
+        };
+    }catch(e){
+        taskLogger.fail(androidBuildSteps[0].fail+ e.message);
     }
-    fs.mkdirsSync(dest);
-    fs.copySync(src, dest);
-    const logDirectory = dest + 'output/logs/';
-    fs.mkdirSync(logDirectory, {
-        recursive: true
-    });
-    logger.setLogDirectory(logDirectory);
-    return {
-        src: src,
-        dest: dest
-    };
 }
 
 async function getDefaultDestination(id, platform) {
@@ -366,15 +382,14 @@ async function writeWmRNConfig(content) {
 // src points to unzip proj
 async function ejectProject(args) {
     try {
-        if(args.platform){
-            await exec('npx', ['expo','prebuild', "--platform", args.platform], {
-                cwd: config.src
-            });
-        }else{
-            await exec('npx', ['expo','prebuild'], {
-                cwd: config.src
-            });
-        }
+        taskLogger.resetProgressBar();
+        taskLogger.setTotal(androidBuildSteps[3].total);
+        taskLogger.start(androidBuildSteps[3].start);
+        taskLogger.incrementProgress(1);
+        await exec('npx', ['expo','prebuild'], {
+            cwd: config.src
+        });
+        taskLogger.incrementProgress(1);
         logger.info({
             label: loggerLabel,
             message: 'expo eject succeeded',
@@ -394,20 +409,22 @@ async function ejectProject(args) {
             });
             taskLogger.info("copied the app-rn-runtime folder");
         }
-        taskLogger.succeed("Project ejected successfully.");
+        taskLogger.succeed(androidBuildSteps[3].succeed);
     } catch (e) {
         logger.error({
             label: loggerLabel,
             message: args.platform + ' eject project Failed. Due to :' + e,
         });
-        taskLogger.fail("Project ejection failed.");
+        taskLogger.fail(androidBuildSteps[3].fail);
         return { errors: e, success: false };
     }
 }
 
 async function prepareProject(args) {
     try {
-        taskLogger.start("Verifying prerequisites...");
+        taskLogger.resetProgressBar();
+        taskLogger.setTotal(androidBuildSteps[1].total);
+        taskLogger.start(androidBuildSteps[1].start);
         config.src = args.dest;
         logger.info({
             label: loggerLabel,
@@ -442,22 +459,26 @@ async function prepareProject(args) {
                 return prerequisiteError;
             }
         }
-        taskLogger.succeed("All required prerequisites are met.");
-        taskLogger.start("Installing dependencies...");
+        taskLogger.incrementProgress(1);
+        taskLogger.succeed(androidBuildSteps[1].succeed);
+        taskLogger.resetProgressBar();
+        taskLogger.setTotal(androidBuildSteps[2].total);
+        taskLogger.start(androidBuildSteps[2].start);
         updateAppJsonFile(config.src);
         logger.info({
             label: loggerLabel,
             message: 'app.json updated.... ' + args.dest
         })
         await updatePackageJsonFile(config.src + 'package.json');
+        taskLogger.incrementProgress(0.2);
         try{
             await exec('yarn', ['install'], {
                 cwd: config.src
             });
+            taskLogger.succeed(androidBuildSteps[2].succeed)
         }catch(e){
-            taskLogger.fail("Dependency installation failed.");
+            taskLogger.fail(androidBuildSteps[2].fail);
         }
-        taskLogger.succeed("All dependencies installed successfully.")
     } catch (e) {
         logger.error({
             label: loggerLabel,

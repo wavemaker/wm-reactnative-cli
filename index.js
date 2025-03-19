@@ -20,6 +20,8 @@ updateNotifier({
 });
 const prompt = require('prompt');
 const logger = require('./src/logger');
+const {calculateTotalSteps, androidBuildSteps} = require('./src/custom-logger/steps');
+const {overallProgressBar} = require('./src/custom-logger/progress-bar')
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -79,6 +81,8 @@ const args = require('yargs')
             }, args => {
                 args.platform = 'android';
                 global.verbose = args.verbose;
+                const totalCount = calculateTotalSteps(androidBuildSteps);
+                overallProgressBar.setTotal(totalCount);
                 build(args)
             })
             .command('ios [src] [options]', 'build for iOS', yargs => {

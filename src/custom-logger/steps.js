@@ -46,15 +46,16 @@ const syncSteps = [
   },
 ]
 
-const buildSteps = [
+const androidBuildSteps = [
   {
     step: 1,
-    start: "Initializing project structure...",
+    start: "Setting up build directories",
     stop: "",
     succeed: "Project directories successfully set up.",
     fail: "Failed to set up project directories.",
     info: "",
     warn: "",
+    total: 6
   },
   {
     step: 2,
@@ -64,6 +65,7 @@ const buildSteps = [
     fail: "Missing or incompatible prerequisites detected.",
     info: "",
     warn: "",
+    total: 2
   },
   {
     step: 3,
@@ -73,6 +75,7 @@ const buildSteps = [
     fail: "Dependency installation failed.",
     info: "",
     warn: "",
+    total: 4
   },
   {
     step: 4,
@@ -82,20 +85,27 @@ const buildSteps = [
     fail: "Project ejection failed.",
     info: "",
     warn: "",
+    total: 2
   },
   {
     step: 5,
-    start: "Building Android/iOS application...",
+    start: "Building Android application...",
     stop: "",
     succeed: "Build successful! APK/IPA generated.",
     fail: "Build failed! Error generating APK/IPA.",
     info: "",
     warn: "",
+    total: 2,
   },
 ];
 
 
+function calculateTotalSteps(process){
+    return process.reduce((sum, step) => sum + (step.total || 0), 0);
+}
 
 module.exports={
-  syncSteps
+  syncSteps,
+  androidBuildSteps,
+  calculateTotalSteps
 }
