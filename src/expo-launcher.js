@@ -35,6 +35,8 @@ var isWebPreview = false;
 var useProxy = false;
 var expoDirectoryHash = "";
 let rnAppPath = "";
+let etag = "";
+let isExpoWebPreview = false;
 
 function launchServiceProxy(projectDir, previewUrl) {
     const proxy =  httpProxy.createProxyServer({});
@@ -319,16 +321,33 @@ async function setup(previewUrl, _clean, authToken) {
     return {projectDir, syncProject};
 }
 
+async function isExpoWebPreviewContainer(previewUrl) {
+    const response = await axios.get(`${previewUrl}/rn-bundle/index.html`).catch((e) => e.response);
+    isExpoWebPreview = response.data.includes("index.bundle") && response.data.includes("platform=web");
+}
+
 async function watchProjectChanges(previewUrl, onChange, lastModifiedOn) {
     try {
-        const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
-            headers: {
-                'if-modified-since' : lastModifiedOn || new Date().toString()
+        if(isExpoWebPreview){
+            const response = await axios.get(`${previewUrl}/rn-bundle/index.bundle?minify=true&platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable`, {
+                headers: {
+                    'if-none-match' : etag || ""
+                }
+            }).catch((e) => e.response);
+            etag = response.headers.etag;
+            if (response.status === 200) {
+                onChange();
             }
-        }).catch((e) => e.response);
-        if (response.status === 200 && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) {
-            lastModifiedOn = response.headers['last-modified'];
-            onChange();
+        }else{
+            const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
+                headers: {
+                    'if-modified-since' : lastModifiedOn || new Date().toString()
+                }
+            }).catch((e) => e.response);
+            if (response.status === 200 && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) {
+                lastModifiedOn = response.headers['last-modified'];
+                onChange();
+            }
         }
     } catch(e) {
         logger.debug({
@@ -460,7 +479,7 @@ async function sync(previewUrl, clean) {
     if (useProxy) {
         launchServiceProxy(projectDir, previewUrl);
     }
-    taskLogger.succeed(chalk.green("Sync finished ") + chalk.blue(`generated expo project at : ${getExpoProjectDir(projectDir)}`));
+    await isExpoWebPreviewContainer(previewUrl);
     watchProjectChanges(previewUrl, () => {
         const startTime = Date.now();
         syncProject()
