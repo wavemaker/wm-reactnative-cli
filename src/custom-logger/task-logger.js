@@ -4,6 +4,14 @@ const { ProgressBar, overallProgressBar } = require("./progress-bar");
 
 class CustomSpinnerBar {
     constructor(options = {}) {
+        if (!options.newInstance && CustomSpinnerBar.instance) {
+            return CustomSpinnerBar.instance;
+        }
+        
+        if (!options.newInstance) {
+            CustomSpinnerBar.instance = this;
+        }
+
         this.text = options.text || "Loading";
         this.spinner = options.spinner || [
             "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
@@ -22,6 +30,7 @@ class CustomSpinnerBar {
         if (text) this.text = text;
         this.isSpinning = true;
         this.frameIndex = 0;
+        this.resetProgressBar();
         this.progressBar.start();
         this.render();
         this.spinnerInterval = setInterval(() => this.render(), this.interval);
@@ -85,13 +94,12 @@ class CustomSpinnerBar {
         const progressBar = this.progressBar?.render() || '';
         const overallProgress = overallProgressBar?.render() || '';
     
-        const output = `${chalk.cyan(frame)} ${this.text} ${progressBar} | ${overallProgress}`;
+        const output = `${chalk.cyan(frame)} ${this.text} ${progressBar} ${overallProgressBar.status() ?`| ${overallProgress}` : ''}`;
         this.stream.write(output);
     
         this.frameIndex = (this.frameIndex + 1) % this.spinner.length;
     }
     
-
     setText(text) {
         this.text = text;
         return this;
@@ -131,6 +139,8 @@ class CustomSpinnerBar {
     }
 }
 
-module.exports = function (options) {
-    return new CustomSpinnerBar(options);
+// Exporting singleton instance and function for new instance
+module.exports = {
+    spinnerBar: new CustomSpinnerBar(),
+    createNewSpinnerBar: (options) => new CustomSpinnerBar({ ...options, newInstance: true })
 };

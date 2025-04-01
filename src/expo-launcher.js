@@ -26,7 +26,8 @@ const loggerLabel = 'expo-launcher';
 function installGlobalNpmPackage(package) {
     return exec('npm', ['install', '-g', package]);
 }
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const {previewSteps} = require('./custom-logger/steps');
 
 var isWebPreview = false;
 var useProxy = false;
@@ -146,7 +147,7 @@ async function updatePackageJsonFile(path) {
         'label': loggerLabel,
         'message': 'updated package.json file'
     });
-    taskLogger.succeed(`updated package.json file`)
+    taskLogger.info(`updated package.json file`)
 }
 
 async function transpile(projectDir, previewUrl, incremental) {
@@ -160,6 +161,7 @@ async function transpile(projectDir, previewUrl, incremental) {
             if(semver.eq(packageJson["dependencies"]["expo"], "52.0.17")){
                 packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
             } 
+            taskLogger.incrementProgress(2);
         } else {
             const wmProjectDir = getWmProjectDir(projectDir);
             codegen = `${projectDir}/target/codegen/node_modules/@wavemaker/rn-codegen`;
@@ -176,6 +178,7 @@ async function transpile(projectDir, previewUrl, incremental) {
                 await exec('npm', ['install', '--save-dev', `@wavemaker/rn-codegen@${uiVersion}`], {
                     cwd: temp
                 });
+                taskLogger.incrementProgress(2);
                 let version = semver.coerce(uiVersion).version;
                 if(semver.gte(version, '11.10.0')){
                     rnAppPath = `${projectDir}/target/codegen/node_modules/@wavemaker/rn-app`;
@@ -194,6 +197,7 @@ async function transpile(projectDir, previewUrl, incremental) {
                 `--incrementalBuild=${!!incremental}`,
                 ...(rnAppPath ? [`--rnAppPath=${rnAppPath}`] : []),
                 getWmProjectDir(projectDir), getExpoProjectDir(projectDir)]);
+        taskLogger.incrementProgress(2);
         const expoProjectDir = getExpoProjectDir(projectDir);
         const configJSONFile = `${expoProjectDir}/wm_rn_config.json`;
         const config = fs.readJSONSync(configJSONFile);
@@ -220,10 +224,11 @@ async function transpile(projectDir, previewUrl, incremental) {
             label: loggerLabel,
             message: `generated expo project at ${getExpoProjectDir(projectDir)}`
         });
-        taskLogger.succeed(`Transpilation successful : generated expo project at ${getExpoProjectDir(projectDir)}`)
+        taskLogger.incrementProgress(2);
+        taskLogger.succeed(`${previewSteps[3].succeed} : generated expo project at ${getExpoProjectDir(projectDir)}`)
 
     }catch(e){
-        taskLogger.fail("Transpilation unsuccesseful")
+        taskLogger.fail(previewSteps[3].fail);
     }
 }
 
@@ -231,13 +236,16 @@ async function installDependencies(projectDir) {
     await updatePackageJsonFile(getExpoProjectDir(projectDir)+ '/package.json');
     if(!isWebPreview){
         try{
-            taskLogger.start("installing dependencies");
+            taskLogger.start(previewSteps[4].start);
+            taskLogger.setTotal(previewSteps[4].total);
+            taskLogger.incrementProgress(1);
             await exec('npm', ['install'], {
                 cwd: getExpoProjectDir(projectDir)
             }); 
-            taskLogger.succeed("Dependencies installed");
+            taskLogger.incrementProgress(3);
+            taskLogger.succeed(previewSteps[4].succeed);
         }catch(e){
-            taskLogger.fail("Dependencies installation failed");
+            taskLogger.fail(previewSteps[4].fail);
         }
     }
 }
@@ -285,7 +293,8 @@ function getExpoProjectDir(projectDir) {
 }
 
 async function setup(previewUrl, _clean, authToken) {
-    taskLogger.start('Setting up project directories...');
+    taskLogger.setTotal(previewSteps[0].total);
+    taskLogger.start(previewSteps[0].start);
     const projectName = await getProjectName(previewUrl);
     const projectDir = `${global.rootDir}/wm-projects/${projectName.replace(/\s+/g, '_').replace(/\(/g, '_').replace(/\)/g, '_')}`;
     if (_clean) {
@@ -297,9 +306,13 @@ async function setup(previewUrl, _clean, authToken) {
     } else {
         fs.mkdirpSync(getWmProjectDir(projectDir));
     }
-    taskLogger.succeed('Setup project directories finished');
+    taskLogger.incrementProgress(1);
+    taskLogger.succeed(previewSteps[0].succeed);
+    taskLogger.resetProgressBar();
+    taskLogger.setTotal(previewSteps[1].total)
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
-    taskLogger.start("Transpiling project");
+    taskLogger.start(previewSteps[3].start);
+    taskLogger.setTotal(previewSteps[3].total);
     await transpile(projectDir, previewUrl, false);
     return {projectDir, syncProject};
 }

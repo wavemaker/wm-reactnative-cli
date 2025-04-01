@@ -1,50 +1,56 @@
-const syncSteps = [
+const previewSteps = [
   {
     step: 1,
     start: "Setting up directories",
-    stop : "",
-    succeed : "Setup directories finished",
-    fail : "Setup directories failed",
-    info : "",
-    warn : "",
+    stop: "",
+    succeed: "Setup directories finished",
+    fail: "Setup directories failed",
+    info: "",
+    warn: "",
+    total: 1,
   },
   {
     step: 2,
     start: "Authenticating user",
-    stop : "",
-    succeed : "Authentication successful",
-    fail : "Authentication failed",
-    info : "",
-    warn : "",
+    stop: "",
+    succeed: "Authentication successful",
+    fail: "Authentication failed",
+    info: "",
+    warn: "",
+    total: 1,
   },
   {
     step: 3,
     start: "Downloading project",
-    stop : "",
-    succeed : "Project downloaded",
-    fail : "Project download failed",
-    info : "",
-    warn : "",
+    stop: "",
+    succeed: "Project downloaded",
+    fail: "Project download failed",
+    info: "",
+    warn: "",
+    total: 5
   },
   {
     step: 4,
     start: "Transpiling project",
-    stop : "",
-    succeed : "Project transpiled successfully",
-    fail : "Transpiling project failed",
-    info : "",
-    warn : "",
+    stop: "",
+    succeed: "Project transpiled successfully",
+    fail: "Transpiling project failed",
+    info: "",
+    warn: "",
+    total: 6
   },
   {
     step: 5,
     start: "Installing dependencies",
-    stop : "",
-    succeed : "Dependencies installed",
-    fail : "Dependencies installation failed",
-    info : "",
-    warn : "",
+    stop: "",
+    succeed: "Dependencies installed",
+    fail: "Dependencies installation failed",
+    info: "",
+    warn: "",
+    total: 4
   },
-]
+];
+
 
 const androidBuildSteps = [
   {
@@ -89,7 +95,7 @@ const androidBuildSteps = [
   },
   {
     step: 5,
-    start: "Building Android application...",
+    start: "Generating Artifact...",
     stop: "",
     succeed: "Build successful! APK/IPA generated.",
     fail: "Build failed! Error generating APK/IPA.",
@@ -105,7 +111,7 @@ function calculateTotalSteps(process){
 }
 
 module.exports={
-  syncSteps,
+  previewSteps,
   androidBuildSteps,
   calculateTotalSteps
 }

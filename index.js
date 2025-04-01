@@ -20,8 +20,9 @@ updateNotifier({
 });
 const prompt = require('prompt');
 const logger = require('./src/logger');
-const {calculateTotalSteps, androidBuildSteps} = require('./src/custom-logger/steps');
+const {calculateTotalSteps, androidBuildSteps, previewSteps} = require('./src/custom-logger/steps');
 const {overallProgressBar} = require('./src/custom-logger/progress-bar')
+const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -80,10 +81,17 @@ const args = require('yargs')
                 })
             }, args => {
                 args.platform = 'android';
+                if(args.interactive){
+                    overallProgressBar.enable();
+                    taskLogger.enableProgressBar();
+                }else{
+                    overallProgressBar.disable();
+                    taskLogger.disableProgressBar();
+                }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(androidBuildSteps);
                 overallProgressBar.setTotal(totalCount);
-                build(args)
+                build(args);
             })
             .command('ios [src] [options]', 'build for iOS', yargs => {
                 yargs.option('ic', {
@@ -103,7 +111,16 @@ const args = require('yargs')
                 });
             }, args => {
                 args.platform = 'ios';
+                if(args.interactive){
+                    overallProgressBar.enable();
+                    taskLogger.enableProgressBar();
+                }else{
+                    overallProgressBar.disable();
+                    taskLogger.disableProgressBar();
+                }
                 global.verbose = args.verbose;
+                const totalCount = calculateTotalSteps(androidBuildSteps);
+                overallProgressBar.setTotal(totalCount);
                 build(args)
             })
             yargs.positional('src', {
@@ -145,6 +162,12 @@ const args = require('yargs')
             })
             .option('verbose', {
                 describe: 'If set to true, then detailed logs will be displayed.',
+                default: false,
+                type: 'boolean'
+            })
+            .option('interactive', {
+                alias: 'i',
+                describe: 'if set true, progress bar will show',
                 default: false,
                 type: 'boolean'
             });
@@ -245,11 +268,32 @@ const args = require('yargs')
                     describe: 'Base Path at which the web preview has to be server.',
                     default: '/rn-bundle/',
                 })
+                .option('verbose', {
+                    describe: 'If set to true, then detailed logs will be displayed.',
+                    default: false,
+                    type: 'boolean'
+                })
+                .option('interactive', {
+                    alias: 'i',
+                    describe: 'if set true, progress bar will show',
+                    default: false,
+                    type: 'boolean'
+                });
             },
             (args) => {
                 if (args.clean) {
                     localStorage.clear();
                 }
+                if(args.interactive){
+                    overallProgressBar.enable();
+                    taskLogger.enableProgressBar();
+                }else{
+                    overallProgressBar.disable();
+                    taskLogger.disableProgressBar();
+                }
+                global.verbose = args.verbose;
+                const totalCount = calculateTotalSteps(previewSteps);
+                overallProgressBar.setTotal(totalCount);
                 const splits = args.previewUrl.split('#');
                 args.previewUrl = splits[0];
                 const authToken = splits[1];
@@ -308,12 +352,27 @@ const args = require('yargs')
             describe: 'If set to true, then detailed logs will be displayed.',
             default: false,
             type: 'boolean'
+        })
+        .option('interactive', {
+            alias: 'i',
+            describe: 'if set true, progress bar will show',
+            default: false,
+            type: 'boolean'
         });
     }, (args) => {
         if (args.clean) {
             localStorage.clear();
         }
+        if(args.interactive){
+            overallProgressBar.enable();
+            // taskLogger.enableProgressBar();
+        }else{
+            overallProgressBar.disable();
+            // taskLogger.disableProgressBar();
+        }
         global.verbose = args.verbose;
+        const totalCount = calculateTotalSteps(previewSteps);
+        overallProgressBar.setTotal(totalCount);
         sync(args.previewUrl, args.clean, args.useProxy);
     })
     .help('h')

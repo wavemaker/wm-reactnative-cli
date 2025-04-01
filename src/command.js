@@ -18,7 +18,7 @@ const ios = require('./ios');
 const { resolve } = require('path');
 const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
 const chalk = require('chalk');
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const loggerLabel = 'wm-reactnative-cli';
 const {androidBuildSteps} = require('./custom-logger/steps');
 
@@ -383,9 +383,8 @@ async function writeWmRNConfig(content) {
 // src points to unzip proj
 async function ejectProject(args) {
     try {
-        taskLogger.resetProgressBar();
-        taskLogger.setTotal(androidBuildSteps[3].total);
         taskLogger.start(androidBuildSteps[3].start);
+        taskLogger.setTotal(androidBuildSteps[3].total);
         taskLogger.incrementProgress(1);
         if(args.platform){
             await exec('npx', ['expo','prebuild', "--platform", args.platform], {
@@ -429,7 +428,6 @@ async function ejectProject(args) {
 
 async function prepareProject(args) {
     try {
-        taskLogger.resetProgressBar();
         taskLogger.setTotal(androidBuildSteps[1].total);
         taskLogger.start(androidBuildSteps[1].start);
         config.src = args.dest;
@@ -468,7 +466,6 @@ async function prepareProject(args) {
         }
         taskLogger.incrementProgress(1);
         taskLogger.succeed(androidBuildSteps[1].succeed);
-        taskLogger.resetProgressBar();
         taskLogger.setTotal(androidBuildSteps[2].total);
         taskLogger.start(androidBuildSteps[2].start);
         updateAppJsonFile(config.src);

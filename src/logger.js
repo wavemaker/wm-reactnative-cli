@@ -10,7 +10,7 @@ const {
     printf
 } = format;
 
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 
 const consoleFormat = printf(({
     level,

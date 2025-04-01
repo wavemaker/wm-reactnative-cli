@@ -13,7 +13,8 @@ const {
  } = require('./requirements');
  const { readAndReplaceFileContent, iterateFiles } = require('./utils');
  const { newPostInstallBlock } =  require('../templates/ios-build-patch/podFIlePostInstall');
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const {androidBuildSteps} = require('./custom-logger/steps');
 
  const loggerLabel = 'Generating ipa file';
 
@@ -313,7 +314,8 @@ function findFile(path, nameregex) {
 
 async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVELOPMENT_TEAM) {
     try {
-        taskLogger.start('Building iOS application...');
+        taskLogger.start(androidBuildSteps[4].start);
+        taskLogger.setTotal(androidBuildSteps[4].total);
         let xcworkspacePath = findFile(config.src + 'ios', /\.xcworkspace?/) || findFile(config.src + 'ios', /\.xcodeproj?/);
         if (!xcworkspacePath) {
             return {
@@ -328,6 +330,7 @@ async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVEL
         const xcworkspaceFileName = pathArr[pathArr.length - 1];
         const fileName = xcworkspaceFileName.split('.')[0];
         removePushNotifications(config.src, fileName);
+        taskLogger.incrementProgress(0.4);
         let _buildType;
         if (args.buildType === 'development' || args.buildType === 'debug') {
             _buildType = 'Debug';
@@ -349,6 +352,7 @@ async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVEL
         const env = {
             RCT_NO_LAUNCH_PACKAGER: 1
         };
+        taskLogger.incrementProgress(0.4);
         await exec('xcodebuild', [
             '-workspace', fileName + '.xcworkspace',
             '-scheme', fileName,
@@ -395,13 +399,13 @@ async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVEL
                 output: outputFilePath
             }
         }
-        taskLogger.succeed('Build successful')
+        taskLogger.succeed(androidBuildSteps[4].succeed);
     } catch (e) {
         logger.error({
             label: loggerLabel,
             message: e
         });
-        taskLogger.fail(e);
+        taskLogger.fail(androidBuildSteps[4].fail);
         console.error(e);
         return {
             errors: e,

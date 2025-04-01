@@ -9,7 +9,8 @@ const qs = require('qs');
 const semver = require('semver');
 const { exec } = require('./exec');
 const { unzip } = require('./zip');
-const taskLogger = require('./custom-logger/task-logger')();
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const {previewSteps} = require('./custom-logger/steps');
 //const PULL_URL = '/studio/services/projects/${projectId}/vcs/remoteChanges';
 const STORE_KEY = 'user.auth.token';
 const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
@@ -49,7 +50,8 @@ async function downloadProject(projectId, config, projectDir) {
     try {
     const start = Date.now();
     logger.info({label: loggerLabel,message: 'downloading the project...'});
-    taskLogger.start("downloading the project...");
+    taskLogger.start(previewSteps[2].start);
+    taskLogger.setTotal(previewSteps[2].total)
     const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
     if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
         const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitInit`, {
@@ -58,7 +60,9 @@ async function downloadProject(projectId, config, projectDir) {
                 cookie: config.authCookie
             }
          });
+        taskLogger.incrementProgress(2);
         await downloadFile(res, tempFile);
+        taskLogger.incrementProgress(1);
         const gitDir = path.join(projectDir, '.git');
         fs.mkdirpSync(gitDir);
         await unzip(tempFile, gitDir);
@@ -71,6 +75,7 @@ async function downloadProject(projectId, config, projectDir) {
                 cookie: config.authCookie
             }
          });
+         taskLogger.incrementProgress(1);
         if(gitInfo.status !== 200){
             throw new Error('failed to download the project');
         }
@@ -82,6 +87,7 @@ async function downloadProject(projectId, config, projectDir) {
                 cookie: config.authCookie
             }
         })
+        taskLogger.incrementProgress(1);
         await downloadFile(res, tempFile);
         const tempDir = path.join(`${os.tmpdir()}`, `project_${Date.now()}`);
         fs.mkdirpSync(tempDir);
@@ -97,12 +103,14 @@ async function downloadProject(projectId, config, projectDir) {
             await exec('git', ['clone', "-b", "master", tempDir, projectDir]);
         }
         fs.rmSync(tempDir, { recursive: true, force: true });
+        taskLogger.incrementProgress(1);
     }
     logger.info({
         label: loggerLabel,
         message: `downloaded the project in (${Date.now() - start} ms).`
     });
-    taskLogger.succeed(`downloaded the project in (${Date.now() - start} ms).`);
+    taskLogger.incrementProgress(2);
+    taskLogger.succeed(`${previewSteps[2].succeed} in (${Date.now() - start} ms).`);
     fs.unlink(tempFile);
         
     const logDirectory = projectDir + '/output/logs/';
@@ -121,7 +129,7 @@ async function downloadProject(projectId, config, projectDir) {
             label: loggerLabel,
             message: e+` The download of the project has encountered an issue. Please ensure that the preview is active.`
         });
-        taskLogger.fail(e+` The download of the project has encountered an issue. Please ensure that the preview is active.`)
+        taskLogger.fail(e+` ${previewSteps[2].fail}`)
     }
 }
 
@@ -344,7 +352,8 @@ async function setup(previewUrl, projectName, authToken) {
         config.authCookie = await authenticateWithToken(config, true);
     }
     global.localStorage.setItem(STORE_KEY, config.authCookie);
-    taskLogger.succeed("User Authenticated");
+    taskLogger.incrementProgress(1);
+    taskLogger.succeed(previewSteps[1].succeed);
     return config;
 }
 

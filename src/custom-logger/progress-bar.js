@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const readline = require("readline");
 
 class ProgressBar {
     constructor(options = {}) {
@@ -41,6 +42,10 @@ class ProgressBar {
         this.showProgressBar = false;
     }
 
+    status() {
+        return this.showProgressBar;
+    }
+
     calculateETA() {
         if (!this.startTime || this.value === 0) return '?';
         const elapsedTime = (Date.now() - this.startTime) / 1000;
@@ -69,8 +74,11 @@ class ProgressBar {
             .replace('{total}', this.total)
             .replace('{eta}', this.calculateETA());
         
-        if (this.textColor) formattedText = chalk[this.textColor](formattedText);
-        
+        if (this.textColor){ 
+            formattedText = chalk[this.textColor](formattedText);
+        }
+        readline.cursorTo(process.stdout, 0);
+
         return formattedText;
     }
 }
