@@ -298,6 +298,7 @@ function getExpoProjectDir(projectDir) {
 async function setup(previewUrl, _clean, authToken) {
     taskLogger.setTotal(previewSteps[0].total);
     taskLogger.start(previewSteps[0].start);
+    taskLogger.incrementProgress(0.5);
     const projectName = await getProjectName(previewUrl);
     const projectDir = `${global.rootDir}/wm-projects/${projectName.replace(/\s+/g, '_').replace(/\(/g, '_').replace(/\)/g, '_')}`;
     if (_clean) {
@@ -309,7 +310,7 @@ async function setup(previewUrl, _clean, authToken) {
     } else {
         fs.mkdirpSync(getWmProjectDir(projectDir));
     }
-    taskLogger.incrementProgress(1);
+    taskLogger.incrementProgress(0.5);
     taskLogger.succeed(previewSteps[0].succeed);
     taskLogger.resetProgressBar();
     taskLogger.setTotal(previewSteps[1].total)

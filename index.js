@@ -293,13 +293,14 @@ const args = require('yargs')
                 }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(previewSteps);
-                overallProgressBar.setTotal(totalCount);
                 const splits = args.previewUrl.split('#');
                 args.previewUrl = splits[0];
                 const authToken = splits[1];
                 if (args.esbuild) {
+                    overallProgressBar.setTotal(totalCount-previewSteps[4].total);
                     runESBuildWebPreview(args.previewUrl, args.clean, authToken);
                 } else {
+                    overallProgressBar.setTotal(totalCount);
                     runWeb(args.previewUrl, args.clean, authToken, args.proxyHost, args.basePath);
                 }
         }).command('android <previewUrl>',

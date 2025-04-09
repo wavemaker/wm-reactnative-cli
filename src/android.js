@@ -11,6 +11,8 @@ const {
     checkForAndroidStudioAvailability
 } = require('./requirements');
 const { readAndReplaceFileContent } = require('./utils');
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const {androidBuildSteps} = require('./custom-logger/steps');
 
 const loggerLabel = 'android-build';
 
@@ -354,6 +356,8 @@ async function embed(args) {
 }
 
 async function invokeAndroidBuild(args) {
+    taskLogger.start(androidBuildSteps[4].start);
+    taskLogger.setTotal(androidBuildSteps[4].total);
     let keyStore, storePassword, keyAlias,keyPassword;
 
     if (args.buildType === 'debug' && !args.aKeyStore) {
@@ -403,6 +407,7 @@ async function invokeAndroidBuild(args) {
         updateAndroidBuildGradleFile(args.buildType);
         taskLogger.incrementProgress(1);
         await generateSignedApk(keyStore, storePassword, keyAlias, keyPassword, args.packageType);
+        taskLogger.succeed(androidBuildSteps[4].succeed);
     } else {
         await updateAndroidBuildGradleFile(args.buildType);
         logger.info({
@@ -415,8 +420,10 @@ async function invokeAndroidBuild(args) {
             cwd: config.src + 'android'
         });
         taskLogger.incrementProgress(1.2)
+        taskLogger.succeed(androidBuildSteps[4].succeed);
     } catch(e) {
         console.error('error generating release apk. ', e);
+        taskLogger.fail(androidBuildSteps[4].fail);
         return {
             success: false,
             errors: e
