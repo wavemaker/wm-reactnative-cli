@@ -1,5 +1,6 @@
 const fs = require('fs');
 const os = require('os');
+const axios = require('axios');
 
 function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
@@ -35,9 +36,15 @@ async function iterateFiles(path, callBack) {
     }
 }
 
+async function isExpoWebPreviewContainer(previewUrl) {
+    const response = await axios.get(`${previewUrl}/rn-bundle/index.html`).catch((e) => e.response);
+    return response.data.includes("index.bundle") && response.data.includes("platform=web");
+}
+
 module.exports = {
     isWindowsOS: isWindowsOS,
     readAndReplaceFileContent: readAndReplaceFileContent,
     iterateFiles: iterateFiles,
-    streamToString: streamToString
+    streamToString: streamToString,
+    isExpoWebPreviewContainer: isExpoWebPreviewContainer
 };

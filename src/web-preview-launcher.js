@@ -12,7 +12,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, streamToString } = require('./utils');
+const { readAndReplaceFileContent, streamToString, isExpoWebPreviewContainer } = require('./utils');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -27,6 +27,9 @@ let rnAppPath = '';
 let packageLockJsonFile = '';
 let basePath = '/rn-bundle/';
 let expoVersion = '';
+let etag = "";
+let isExpoPreviewContainer = false;
+
 function launchServiceProxy(projectDir, previewUrl) {
     const proxy =  httpProxy.createProxyServer({});
     const wmProjectDir = getWmProjectDir(projectDir);
@@ -364,14 +367,26 @@ async function setup(previewUrl, _clean, authToken) {
 
 async function watchProjectChanges(previewUrl, onChange, lastModifiedOn) {
     try {
-        const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
-            headers: {
-                'if-modified-since' : lastModifiedOn || new Date().toString()
+        if(isExpoPreviewContainer){
+            const response = await axios.get(`${previewUrl}/rn-bundle/index.bundle?minify=true&platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable`, {
+                headers: {
+                    'if-none-match' : etag || ""        
+                } 
+            }).catch((e) => e.response);
+            etag = response.headers.etag;
+            if (response.status === 200) {
+                onChange();
             }
-        }).catch((e) => e.response);
-        if (response.status === 200 && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) {
-            lastModifiedOn = response.headers['last-modified'];
-            onChange();
+        }else{
+            const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
+                headers: {
+                    'if-modified-since' : lastModifiedOn || new Date().toString()
+                }
+            }).catch((e) => e.response);
+            if (response.status === 200 && response.data.indexOf('<title>WaveMaker Preview</title>') > 0) {
+                lastModifiedOn = response.headers['last-modified'];
+                onChange();
+            }
         }
     } catch(e) {
         logger.debug({
@@ -440,8 +455,7 @@ async function runWeb(previewUrl, clean, authToken) {
     try {
         const {projectDir, syncProject} = await setup(previewUrl, clean, authToken);
         let isExpoStarted = false;
-        taskLogger.info( `generated expo project at ${getExpoProjectDir(projectDir)}`);
-        taskLogger.succeed(chalk.green("Expo-web build finished ") + chalk.blue(`Service proxy launched at ${proxyUrl}`));
+        isExpoPreviewContainer = await isExpoWebPreviewContainer(previewUrl);
         watchProjectChanges(previewUrl, () => {
             const startTime = Date.now();
             syncProject()
