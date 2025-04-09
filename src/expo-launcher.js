@@ -22,6 +22,7 @@ const webPreviewPort = 19005;
 let proxyPort = 19009;
 let barcodePort = 19000;
 let proxyUrl = `http://${getIpAddress()}:${proxyPort}`;
+let localHostUrl = `http://localhost:${proxyPort}`
 const loggerLabel = 'expo-launcher';
 function installGlobalNpmPackage(package) {
     return exec('npm', ['install', '-g', package]);
@@ -152,6 +153,8 @@ async function updatePackageJsonFile(path) {
 
 async function transpile(projectDir, previewUrl, incremental) {
     try{
+        taskLogger.start(previewSteps[3].start);
+        taskLogger.setTotal(previewSteps[3].total);
         let codegen = process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE;
         let packageLockJsonFile = '';
         if (codegen) {
@@ -311,8 +314,6 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.resetProgressBar();
     taskLogger.setTotal(previewSteps[1].total)
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
-    taskLogger.start(previewSteps[3].start);
-    taskLogger.setTotal(previewSteps[3].total);
     await transpile(projectDir, previewUrl, false);
     return {projectDir, syncProject};
 }
@@ -387,7 +388,7 @@ function watchForPlatformChanges(callBack) {
         lastKnownModifiedTime = currentModifiedTime;
 
         if (doBuild && callBack) {
-            console.log('\n\n\n')
+            // console.log('\n\n\n')
             logger.info({
                 label: loggerLabel,
                 message: 'Platform Changed. Building again.'
@@ -420,6 +421,8 @@ async function runExpo(previewUrl, clean, authToken) {
         if (!isWebPreview) {
             launchExpo(projectDir);
         }
+        taskLogger.info(`generated esbuild web app at ${projectDir}`);
+        taskLogger.succeed(chalk.green("Esbuild finished ") + chalk.blue(`Service proxy launched at ${localHostUrl}`));
         watchProjectChanges(previewUrl, () => {
             const startTime = Date.now();
             syncProject()
@@ -475,7 +478,17 @@ async function sync(previewUrl, clean) {
             taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
         });
     });
-    watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
+    watchForPlatformChanges(() => { 
+        const startTime = Date.now();
+        return transpile(projectDir, previewUrl, false).then(() => {
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            logger.info({
+                label: loggerLabel,
+                message: `Total Time: ${duration}s.`
+            });
+            taskLogger.info(`Total Time: ${duration}s.`);
+        });
+    });
 }
 
 async function runNative(previewUrl, platform, clean) {

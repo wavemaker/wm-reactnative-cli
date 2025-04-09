@@ -148,7 +148,6 @@ async function pullChanges(projectId, config, projectDir) {
     });
     const headCommitId = output[0];
     logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
-    logger.info({label: loggerLabel, message: 'pulling new changes from studio...'});
     taskLogger.start('pulling new changes from studio...');
     const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
     if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
@@ -195,7 +194,10 @@ async function pullChanges(projectId, config, projectDir) {
         fs.unlink(tempFile);
     }
     fs.rmSync(tempDir, { recursive: true, force: true });
-    taskLogger.succeed('pulled new changes from studio');
+    taskLogger.succeed(`pulled new changes from studio - head commit id ${headCommitId}`);
+    const filesChanged = await exec('git', ['diff','--name-only', 'HEAD~1', 'HEAD'], {cwd: projectDir});
+    const changedFiles = filesChanged.map((file)=>file.replace(/^.*webapp\//, ''));
+    taskLogger.info("Files changed : " + chalk.yellow(changedFiles));
     } catch (e) {
         logger.info({
             label: loggerLabel,

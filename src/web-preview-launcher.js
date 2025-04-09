@@ -17,6 +17,7 @@ const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const { previewSteps } = require('./custom-logger/steps');
+const chalk = require('chalk');
 let webPreviewPort = 19006;
 const proxyPort = 19009;
 let proxyUrl = `http://localhost:${proxyPort}`;
@@ -150,7 +151,6 @@ async function transpile(projectDir, previewUrl, incremental) {
         label: loggerLabel,
         message: `generated expo project at ${getExpoProjectDir(projectDir)}`
     });
-    taskLogger.info( `generated expo project at ${getExpoProjectDir(projectDir)}`);
     taskLogger.incrementProgress(2);
     taskLogger.succeed(previewSteps[3].succeed);
     await updateForWebPreview(projectDir); // Incorporating customized patches for any packages, if necessary.
@@ -418,7 +418,7 @@ function watchForPlatformChanges(callBack) {
         lastKnownModifiedTime = currentModifiedTime;
 
         if (doBuild && callBack) {
-            console.log('\n\n\n')
+            // console.log('\n\n\n')
             logger.info({
                 label: loggerLabel,
                 message: 'Platform Changed. Building again.'
@@ -440,6 +440,8 @@ async function runWeb(previewUrl, clean, authToken) {
     try {
         const {projectDir, syncProject} = await setup(previewUrl, clean, authToken);
         let isExpoStarted = false;
+        taskLogger.info( `generated expo project at ${getExpoProjectDir(projectDir)}`);
+        taskLogger.succeed(chalk.green("Expo-web build finished ") + chalk.blue(`Service proxy launched at ${proxyUrl}`));
         watchProjectChanges(previewUrl, () => {
             const startTime = Date.now();
             syncProject()
@@ -448,14 +450,18 @@ async function runWeb(previewUrl, clean, authToken) {
                     label: loggerLabel,
                     message: `Sync Time: ${(Date.now() - startTime)/ 1000}s.`
                 });
+                taskLogger.info(`Sync Time: ${(Date.now() - startTime)/ 1000}s.`);
             })
             .then(() => {
                 return transpile(projectDir, previewUrl, true).then(() => {
                     if (!isExpoStarted) {
                         isExpoStarted = true;
                         launchServiceProxy(projectDir, previewUrl);
-                        return exec('npx', ['expo', 'start', '--web', '--offline', `--port=${webPreviewPort}`], {
-                            cwd: getExpoProjectDir(projectDir)
+                        return new Promise((resolve) => {
+                            exec('npx', ['expo', 'start', '--web', '--offline', `--port=${webPreviewPort}`], {
+                                cwd: getExpoProjectDir(projectDir)
+                            });
+                            resolve();
                         });
                     }
                 }).then(() => {
@@ -464,10 +470,24 @@ async function runWeb(previewUrl, clean, authToken) {
                         label: loggerLabel,
                         message: `Total Time: ${(Date.now() - startTime)/ 1000}s.`
                     });
+                    taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
                 });
+            }).catch(err => {
+                taskLogger.warn("Error occurred: ", err);
+                console.error(err);
             });
         });
-        watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
+        watchForPlatformChanges(() => { 
+            const startTime = Date.now();
+            return transpile(projectDir, previewUrl, false).then(() => {
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+                logger.info({
+                    label: loggerLabel,
+                    message: `Total Time: ${duration}s.`
+                });
+                taskLogger.info(`Total Time: ${duration}s.`);
+            });
+        });
     } catch(e) {
         logger.error({
             label: loggerLabel,
