@@ -67,6 +67,7 @@ async function downloadProject(projectId, config, projectDir) {
         fs.mkdirpSync(gitDir);
         await unzip(tempFile, gitDir);
         await exec('git', ['restore', '.'], {cwd: projectDir});
+        taskLogger.incrementProgress(1);
     }
     else{
         const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitBare`, {
@@ -75,7 +76,7 @@ async function downloadProject(projectId, config, projectDir) {
                 cookie: config.authCookie
             }
          });
-         taskLogger.incrementProgress(1);
+         taskLogger.incrementProgress(2);
         if(gitInfo.status !== 200){
             throw new Error('failed to download the project');
         }
@@ -87,7 +88,7 @@ async function downloadProject(projectId, config, projectDir) {
                 cookie: config.authCookie
             }
         })
-        taskLogger.incrementProgress(1);
+        taskLogger.incrementProgress(2);
         await downloadFile(res, tempFile);
         const tempDir = path.join(`${os.tmpdir()}`, `project_${Date.now()}`);
         fs.mkdirpSync(tempDir);
@@ -109,7 +110,7 @@ async function downloadProject(projectId, config, projectDir) {
         label: loggerLabel,
         message: `downloaded the project in (${Date.now() - start} ms).`
     });
-    taskLogger.incrementProgress(2);
+    taskLogger.incrementProgress(1);
     taskLogger.succeed(`${previewSteps[2].succeed} in (${Date.now() - start} ms).`);
     fs.unlink(tempFile);
         

@@ -311,7 +311,6 @@ async function installDependencies(projectDir) {
         content = content.replace('getEnvPrelude(str)', '//getEnvPrelude(str)');
         return content.replace('// process.env', '// process.env \n firstModule.output[0].data.code = firstModule.output[0].data.code + str;');
     });
-    taskLogger.incrementProgress(1);
     taskLogger.succeed(previewSteps[4].succeed);
     } catch (e) {
         logger.error({
