@@ -83,10 +83,10 @@ const args = require('yargs')
                 args.platform = 'android';
                 if(args.interactive){
                     overallProgressBar.enable();
-                    taskLogger.enableProgressBar();
+                    // taskLogger.enableProgressBar();
                 }else{
                     overallProgressBar.disable();
-                    taskLogger.disableProgressBar();
+                    // taskLogger.disableProgressBar();
                 }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(androidBuildSteps);
@@ -113,10 +113,10 @@ const args = require('yargs')
                 args.platform = 'ios';
                 if(args.interactive){
                     overallProgressBar.enable();
-                    taskLogger.enableProgressBar();
+                    // taskLogger.enableProgressBar();
                 }else{
                     overallProgressBar.disable();
-                    taskLogger.disableProgressBar();
+                    // taskLogger.disableProgressBar();
                 }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(androidBuildSteps);
@@ -286,10 +286,10 @@ const args = require('yargs')
                 }
                 if(args.interactive){
                     overallProgressBar.enable();
-                    taskLogger.enableProgressBar();
+                    // taskLogger.enableProgressBar();
                 }else{
                     overallProgressBar.disable();
-                    taskLogger.disableProgressBar();
+                    // taskLogger.disableProgressBar();
                 }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(previewSteps);
