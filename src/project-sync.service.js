@@ -11,6 +11,7 @@ const { exec } = require('./exec');
 const { unzip } = require('./zip');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const {previewSteps} = require('./custom-logger/steps');
+const chalk = require('chalk');
 //const PULL_URL = '/studio/services/projects/${projectId}/vcs/remoteChanges';
 const STORE_KEY = 'user.auth.token';
 const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
@@ -124,7 +125,7 @@ async function downloadProject(projectId, config, projectDir) {
     });
     global.logDirectory = logDirectory;
     logger.setLogDirectory(logDirectory);
-    taskLogger.info("Full log details can be found in: " + logDirectory);
+    taskLogger.info("Full log details can be found in: " + chalk.blue(logDirectory));
     } catch (e) {
         logger.info({
             label: loggerLabel,

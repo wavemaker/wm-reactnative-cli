@@ -28,6 +28,7 @@ function installGlobalNpmPackage(package) {
 }
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const {previewSteps} = require('./custom-logger/steps');
+const chalk = require('chalk');
 
 var isWebPreview = false;
 var useProxy = false;
@@ -147,7 +148,6 @@ async function updatePackageJsonFile(path) {
         'label': loggerLabel,
         'message': 'updated package.json file'
     });
-    taskLogger.info(`updated package.json file`)
 }
 
 async function transpile(projectDir, previewUrl, incremental) {
@@ -225,7 +225,7 @@ async function transpile(projectDir, previewUrl, incremental) {
             message: `generated expo project at ${getExpoProjectDir(projectDir)}`
         });
         taskLogger.incrementProgress(2);
-        taskLogger.succeed(`${previewSteps[3].succeed} : generated expo project at ${getExpoProjectDir(projectDir)}`)
+        taskLogger.succeed(`${previewSteps[3].succeed}`)
 
     }catch(e){
         taskLogger.fail(previewSteps[3].fail);
@@ -456,6 +456,7 @@ async function sync(previewUrl, clean) {
     if (useProxy) {
         launchServiceProxy(projectDir, previewUrl);
     }
+    taskLogger.succeed(chalk.green("Sync finished ") + chalk.blue(`generated expo project at : ${getExpoProjectDir(projectDir)}`));
     watchProjectChanges(previewUrl, () => {
         const startTime = Date.now();
         syncProject()
