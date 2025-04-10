@@ -195,9 +195,23 @@ async function pullChanges(projectId, config, projectDir) {
     }
     fs.rmSync(tempDir, { recursive: true, force: true });
     taskLogger.succeed(`pulled new changes from studio - head commit id ${headCommitId}`);
-    const filesChanged = await exec('git', ['diff','--name-only', 'HEAD~1', 'HEAD'], {cwd: projectDir});
-    const changedFiles = filesChanged.map((file)=>file.replace(/^.*webapp\//, ''));
-    taskLogger.info("Files changed : " + chalk.yellow(changedFiles));
+    let filesChanged = await exec('git', ['diff','--name-status', 'HEAD~1', 'HEAD'], {cwd: projectDir});
+    filesChanged = filesChanged.filter(Boolean);
+    const changes = filesChanged.map((line) => {
+      const [status, ...fileParts] = line.trim().split(/\s+/);
+      const filePath = fileParts.join(' ').replace(/^.*webapp\//, '');
+      return { status, filePath };
+    });
+  
+    const formatted = changes.map(({ status, filePath }) => {
+        const color = status === 'A' ? chalk.green
+                    : status === 'D' ? chalk.red
+                    : status === 'M' ? chalk.yellow
+                    : chalk.cyan;
+    
+        return `${color(status)}:${color(filePath)}`;
+      });
+      taskLogger.info("Files changed: \n\t" + formatted.join('\n\t'));
     } catch (e) {
         logger.info({
             label: loggerLabel,
