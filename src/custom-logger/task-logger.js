@@ -68,7 +68,8 @@ class CustomSpinnerBar {
             finalText += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
         }
         this.stream.write(`${chalk.red('✖')} ${chalk.bold.red(finalText)}\n`);
-        return this;
+        process.exit(1);
+        // return this;
     }
 
     info(text) {
