@@ -272,19 +272,19 @@ async function setupBuildDirectory(src, dest, platform) {
             if (fs.readdirSync(dest).length) {
                 const response = await showConfirmation('Would you like to empty the dest folder (i.e. ' + dest + ') (yes/no) ?');
                 if (response !== 'y' && response !== 'yes') {
-                    logger.error({
-                        label: loggerLabel,
-                        message: 'Non empty folder cannot be used as desination. Please choose a different destination and build again.'
-                    });
-                    taskLogger.fail("Non empty folder cannot be used as desination. Please choose a different destination and build again.")
-                    return;
-                }
-                // using removeSync when dest is directory and unlinkSync works when dest is file.
-                const fsStat = fs.lstatSync(dest);
-                if (fsStat.isDirectory()) {
-                    fs.removeSync(dest);
-                } else if (fsStat.isFile()) {
-                    fs.unlinkSync(dest);
+                    // logger.error({
+                    //     label: loggerLabel,
+                    //     message: 'Non empty folder cannot be used as desination. Please choose a different destination and build again.'
+                    // });
+                    // return;
+                }else{
+                    // using removeSync when dest is directory and unlinkSync works when dest is file.
+                    const fsStat = fs.lstatSync(dest);
+                    if (fsStat.isDirectory()) {
+                        fs.removeSync(dest);
+                    } else if (fsStat.isFile()) {
+                        fs.unlinkSync(dest);
+                    }   
                 }
             }
         }
