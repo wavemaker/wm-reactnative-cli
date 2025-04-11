@@ -255,14 +255,15 @@ async function setupBuildDirectory(src, dest, platform) {
                     label: loggerLabel,
                     message: 'Non empty folder cannot be used as desination. Please choose a different destination and build again.'
                 });
-                return;
-            }
-            // using removeSync when dest is directory and unlinkSync works when dest is file.
-            const fsStat = fs.lstatSync(dest);
-            if (fsStat.isDirectory()) {
-                fs.removeSync(dest);
-            } else if (fsStat.isFile()) {
-                fs.unlinkSync(dest);
+                // return;
+            }else{
+                // using removeSync when dest is directory and unlinkSync works when dest is file.
+                const fsStat = fs.lstatSync(dest);
+                if (fsStat.isDirectory()) {
+                    fs.removeSync(dest);
+                } else if (fsStat.isFile()) {
+                    fs.unlinkSync(dest);
+                }   
             }
         }
     }
