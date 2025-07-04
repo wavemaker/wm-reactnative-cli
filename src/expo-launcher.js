@@ -345,10 +345,11 @@ function watchForPlatformChanges(callBack) {
             'rn-codegen': getLastModifiedTime(`${codegen}/wavemaker-rn-codegen/dist/new-build`),
             'ui-variables': getLastModifiedTime(`${codegen}/wavemaker-ui-variables/dist/new-build`),
         };
-        const doBuild = lastKnownModifiedTime['rn-runtime'] < currentModifiedTime['rn-runtime']
+        const doBuild = lastKnownModifiedTime['rn-runtime'] > 0 && 
+                (lastKnownModifiedTime['rn-runtime'] < currentModifiedTime['rn-runtime']
                 || lastKnownModifiedTime['rn-codegen'] < currentModifiedTime['rn-codegen']
-                || lastKnownModifiedTime['ui-variables'] < currentModifiedTime['ui-variables'];
-
+                || lastKnownModifiedTime['ui-variables'] < currentModifiedTime['ui-variables']);
+        
         lastKnownModifiedTime = currentModifiedTime;
 
         if (doBuild && callBack) {
