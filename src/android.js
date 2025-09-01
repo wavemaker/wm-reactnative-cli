@@ -364,8 +364,10 @@ async function embed(args) {
 }
 
 async function invokeAndroidBuild(args) {
+    taskLogger.enableProgressBar();
     taskLogger.start(androidBuildSteps[4].start);
     taskLogger.setTotal(androidBuildSteps[4].total);
+    taskLogger.incrementProgress(0.5); // Show initial progress (0% -> 25%)
     let keyStore, storePassword, keyAlias,keyPassword;
 
     if (args.buildType === 'debug' && !args.aKeyStore) {
@@ -413,7 +415,7 @@ async function invokeAndroidBuild(args) {
         addProguardRule();
         updateOptimizationFlags();
         updateAndroidBuildGradleFile(args.buildType);
-        taskLogger.incrementProgress(1);
+        taskLogger.incrementProgress(0.5); // 25% -> 50%
         await generateSignedApk(keyStore, storePassword, keyAlias, keyPassword, args.packageType);
         taskLogger.succeed(androidBuildSteps[4].succeed);
     } else {
@@ -422,12 +424,12 @@ async function invokeAndroidBuild(args) {
             label: loggerLabel,
             message: 'Updated build.gradle file with debug configuration'
         });
-        taskLogger.incrementProgress(0.5)
+        taskLogger.incrementProgress(0.5) // 50% -> 75%
         try {
         await exec('./gradlew', ['assembleDebug'], {
             cwd: config.src + 'android'
         });
-        taskLogger.incrementProgress(1.2)
+        taskLogger.incrementProgress(1.0) // 75% -> 100%
         taskLogger.succeed(androidBuildSteps[4].succeed);
     } catch(e) {
         console.error('error generating release apk. ', e);
