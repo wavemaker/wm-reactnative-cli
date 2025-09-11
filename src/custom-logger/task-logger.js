@@ -123,16 +123,13 @@ class CustomSpinnerBar {
         const displayProgress = this.progressBar.status() ? progressBar : (overallProgressBar.status() ? overallProgress : '');
         const output = `${chalk.cyan(frame)} ${this.text} ${displayProgress}`;
         
-        // Only update if output changed or forced (performance optimization)
-        if (force || output !== this.lastOutput) {
-            // Additional check: skip if only spinner frame changed but progress is the same
-            const progressChanged = this.progressBar.value !== this.lastProgressValue;
-            if (force || progressChanged || !this.lastOutput) {
-                this.clearLine();
-                this.stream.write(output);
-                this.lastOutput = output;
-                this.lastProgressValue = this.progressBar.value;
-            }
+        const outputChanged = output !== this.lastOutput
+        const progressChanged = this.progressBar.value !== this.lastProgressValue;
+        if (force || progressChanged || !this.lastOutput || outputChanged) {
+            this.clearLine();
+            this.stream.write(output);
+            this.lastOutput = output;
+            this.lastProgressValue = this.progressBar.value;
         }
     }
     
