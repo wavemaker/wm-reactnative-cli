@@ -24,6 +24,8 @@ class CustomSpinnerBar {
         this.lastProgressValue = -1;
         this.renderCount = 0;
         
+        this.startTime = null;
+        
         // Only render every 10th frame to reduce I/O operations
         this.renderThrottle = 10;
         
@@ -42,6 +44,7 @@ class CustomSpinnerBar {
         this.isSpinning = true;
         this.frameIndex = 0;
         this.renderCount = 0;
+        this.startTime = Date.now();
         this.resetProgressBar();
         this.progressBar.start();
         
@@ -73,12 +76,36 @@ class CustomSpinnerBar {
         return this;
     }
 
+    getElapsedTime() {
+        if (!this.startTime) return 0;
+        return this.formatTime(Date.now() - this.startTime);
+    }
+
+    formatTime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const ms = milliseconds % 1000;
+        
+        if (seconds < 60) {
+            return `${seconds}.${Math.floor(ms / 100)}s`;
+        }
+        
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+
+    getTimestamp() {
+        const now = new Date();
+        return now.toTimeString().split(' ')[0];
+    }
+
     succeed(text) {
         if (global?.verbose) return this;
         this.stop();
 
         this.progressBar.setProgress(this.progressBar.total);
-        const output = `${chalk.green("✔")} ${text || this.text} ${this.progressBar.render()}`;
+        const finalText = text || this.text;
+        const output = `${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.green("✔")} ${finalText} ${this.progressBar.render()} ${chalk.gray(`(${this.getElapsedTime()})`)}`;
         this.clearLine();
         this.writeLine(output);
         return this;
@@ -91,8 +118,9 @@ class CustomSpinnerBar {
         if(global.logDirectory){
             finalText += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
         }
+        
         this.clearLine();
-        this.writeLine(`${chalk.red('✖')} ${chalk.bold.red(finalText)}`);
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.red('✖')} ${chalk.bold.red(finalText)} ${chalk.gray(`(${this.getElapsedTime()})`)}`);
         process.exit(1);
     }
 
@@ -100,7 +128,7 @@ class CustomSpinnerBar {
         if (global.verbose) return this;
         this.stop();
         this.clearLine();
-        this.writeLine(`${chalk.blue("ℹ")} ${text || this.text}`);
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.blue("ℹ")} ${text || this.text}`);
         return this;
     }
 
@@ -108,7 +136,7 @@ class CustomSpinnerBar {
         if (global.verbose) return this;
         this.stop();
         this.clearLine();
-        this.writeLine(`${chalk.yellow("⚠")} ${text || this.text}`);
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.yellow("⚠")} ${text || this.text}`);
         return this;
     }
 
