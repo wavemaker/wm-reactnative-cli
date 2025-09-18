@@ -533,4 +533,5 @@ module.exports = {
             message: `Project is prepared at : ${args.dest}.`,
         });
     },
+    extractRNZip: extractRNZip
 };

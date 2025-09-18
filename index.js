@@ -22,7 +22,6 @@ const prompt = require('prompt');
 const logger = require('./src/logger');
 const {calculateTotalSteps, androidBuildSteps, previewSteps} = require('./src/custom-logger/steps');
 const {overallProgressBar} = require('./src/custom-logger/progress-bar');
-const yargs = require('yargs');
 const { audit } = require('./src/audit');
 const { snyk } = require('./src/snyk');
 const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
