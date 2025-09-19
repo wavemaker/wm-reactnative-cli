@@ -21,8 +21,12 @@ updateNotifier({
 const prompt = require('prompt');
 const logger = require('./src/logger');
 const {calculateTotalSteps, androidBuildSteps, previewSteps} = require('./src/custom-logger/steps');
-const {overallProgressBar} = require('./src/custom-logger/progress-bar')
+const {overallProgressBar} = require('./src/custom-logger/progress-bar');
+const { audit } = require('./src/audit');
+const { snyk } = require('./src/snyk');
 const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
+
+console.log("wm = reactnative-cli version: ", pkg.version);
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -375,6 +379,26 @@ const args = require('yargs')
         const totalCount = calculateTotalSteps(previewSteps);
         overallProgressBar.setTotal(totalCount);
         sync(args.previewUrl, args.clean, args.useProxy);
+    })
+    .command('snyk [src]', '', yargs => {
+        yargs.positional('src', {
+            describe: 'path of rn project',
+            default: './',
+            type: 'string',
+            normalize: true
+        })
+    }, (args)=> {   
+        snyk(args);
+    })
+    .command('audit [src]', '', yargs => {
+        yargs.positional('src', {
+            describe: 'path of rn project',
+            default: './',
+            type: 'string',
+            normalize: true
+        })
+    }, (args)=> {   
+        audit(args);
     })
     .help('h')
     .alias('h', 'help').argv;

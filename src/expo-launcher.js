@@ -2,7 +2,6 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
-const request = require('request');
 const os = require('os');
 const rimraf = require("rimraf");
 const open = require('open');
@@ -61,18 +60,15 @@ function launchServiceProxy(projectDir, previewUrl) {
             let tUrl = req.url;
             if (req.url === '/' || req.url.startsWith('/rn-bundle')) {
                 tUrl = `http://localhost:${webPreviewPort}${req.url}`;
-                req.pipe(request(tUrl)).pipe(res);
-            } else {
-                proxy.web(req, res, {
-                    target: previewUrl,
-                    xfwd: false,
-                    changeOrigin: true,
-                    secure: false,
-                    cookiePathRewrite: {
-                        "*": ""
-                    }
+        
+                // Refactor with http/https for streaming
+                http.get(tUrl, (response) => {
+                    response.pipe(res);
+                }).on('error', (err) => {
+                    console.error('Request failed:', err);
+                    res.writeHead(500);
+                    res.end('Internal Server Error');
                 });
-                tUrl = `${previewUrl}/${req.url}`;
             }
         } catch(e) {
             res.writeHead(500);
