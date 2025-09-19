@@ -16,16 +16,12 @@ try {
   const absolutePath = path.resolve(projectPath);
   console.log("Resolved project path:", absolutePath);
  const parentDir = path.resolve(absolutePath, '..');
-// Set up Config registry in the parent directory
-console.log("Setting npm registry to https://registry.npmjs.org/ ...");
+
 execSync('npm cache clean --force', { cwd: parentDir, stdio: 'inherit' });
-
- execSync('npm config set registry=https://repository.wavemaker.com/repository/wavemaker-npm-repo/', { cwd: parentDir, stdio: 'inherit' });
+execSync('npm config set registry=https://repository.wavemaker.com/repository/wavemaker-npm-repo/', { cwd: parentDir, stdio: 'inherit' });
  
-
-
-  console.log("Installing node modules...");
-  execSync('npm install', { cwd: absolutePath, stdio: 'inherit' });
+console.log("Installing node modules...");
+execSync('npm install', { cwd: absolutePath, stdio: 'inherit' });
   execSync('npm update', { cwd: absolutePath, stdio: 'inherit' });
   console.log("Node modules installed.");
   execSync('npm config set registry https://registry.npmjs.org/', { cwd: parentDir, stdio: 'inherit' });

@@ -2,7 +2,6 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
-const request = require('request');
 const os = require('os');
 const rimraf = require("rimraf");
 const semver = require('semver');
@@ -67,24 +66,30 @@ function launchServiceProxy(projectDir, previewUrl) {
             } else {
                 req.headers.origin = `http://localhost:${webPreviewPort}`;
                 const url = req.url;
-                if (url.indexOf('/index.bundle') > 0 && req.headers &&req.headers.referer) {
-                    let sourceMap = req.headers.referer.replace('/index.html', '') + '/index.map';
-                    if (url.indexOf('?') > 0) {
-                        sourceMap += url.substring(url.indexOf('?'));
-                    }
-                    res.setHeader('SourceMap', sourceMap);
-                }
-                res.setHeader('Content-Location', url);
                 if (url.indexOf('/index.bundle') > 0) {
-                    streamToString(request(tUrl)).then(content => {
-                        content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
-                        res.write(content);
-                        res.end();
+                    http.get(tUrl, (response) => {
+                        streamToString(response).then(content => {
+                            content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
+                            res.write(content);
+                            res.end();
+                        }).catch(error => {
+                            console.error('Failed to convert stream:', error);
+                            res.writeHead(500);
+                            res.end('Internal Server Error');
+                        });
+                    }).on('error', (err) => {
+                        console.error('Request failed:', err);
+                        res.writeHead(500);
+                        res.end('Internal Server Error');
                     });
                 } else {
-                    req.pipe(request(tUrl, function(error, res, body){
-                        //error && console.log(error);
-                    })).pipe(res);
+                    http.get(tUrl, (response) => {
+                        response.pipe(res);
+                    }).on('error', (err) => {
+                        console.error('Request failed:', err);
+                        res.writeHead(500);
+                        res.end('Internal Server Error');
+                    });
                 }
             } 
         } catch(e) {

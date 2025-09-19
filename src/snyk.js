@@ -97,7 +97,7 @@ const snyk = async (args) => {
         const reportPath = path.join(absolutePath, 'snyk-report.txt');
         fs.writeFileSync(reportPath, auditReport);
     
-        console.log(`Audit report saved to ${reportPath}`);
+        console.log(`Snyk report saved to ${reportPath}`);
   }
 };
 

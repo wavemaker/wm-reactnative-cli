@@ -26,7 +26,7 @@ const { audit } = require('./src/audit');
 const { snyk } = require('./src/snyk');
 const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
 
-console.log("wm=-reactnative-cli version: ", pkg.version);
+console.log("wm = reactnative-cli version: ", pkg.version);
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
