@@ -41,10 +41,15 @@ async function isExpoWebPreviewContainer(previewUrl) {
     return response.data.includes("index.bundle") && response.data.includes("platform=web");
 }
 
+function removeWarningsFromConsole(){
+    process.removeAllListeners('warning');
+}
+
 module.exports = {
     isWindowsOS: isWindowsOS,
     readAndReplaceFileContent: readAndReplaceFileContent,
     iterateFiles: iterateFiles,
     streamToString: streamToString,
-    isExpoWebPreviewContainer: isExpoWebPreviewContainer
+    isExpoWebPreviewContainer: isExpoWebPreviewContainer,
+    removeWarningsFromConsole: removeWarningsFromConsole
 };

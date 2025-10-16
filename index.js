@@ -23,6 +23,7 @@ const logger = require('./src/logger');
 const {calculateTotalSteps, androidBuildSteps, previewSteps} = require('./src/custom-logger/steps');
 const {overallProgressBar} = require('./src/custom-logger/progress-bar')
 const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
+const {removeWarningsFromConsole} = require('./src/utils');
 
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
@@ -88,6 +89,9 @@ const args = require('yargs')
                     overallProgressBar.disable();
                     // taskLogger.disableProgressBar();
                 }
+                if(!args.verbose){
+                    removeWarningsFromConsole();
+                }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(androidBuildSteps);
                 overallProgressBar.setTotal(totalCount);
@@ -117,6 +121,9 @@ const args = require('yargs')
                 }else{
                     overallProgressBar.disable();
                     // taskLogger.disableProgressBar();
+                }
+                if(!args.verbose){
+                    removeWarningsFromConsole();
                 }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(androidBuildSteps);
@@ -291,6 +298,9 @@ const args = require('yargs')
                     overallProgressBar.disable();
                     // taskLogger.disableProgressBar();
                 }
+                if(!args.verbose){
+                    removeWarningsFromConsole();
+                }
                 global.verbose = args.verbose;
                 const totalCount = calculateTotalSteps(previewSteps);
                 const splits = args.previewUrl.split('#');
@@ -370,6 +380,9 @@ const args = require('yargs')
         }else{
             overallProgressBar.disable();
             // taskLogger.disableProgressBar();
+        }
+        if(!args.verbose){
+            removeWarningsFromConsole();
         }
         global.verbose = args.verbose;
         const totalCount = calculateTotalSteps(previewSteps);
