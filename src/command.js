@@ -152,6 +152,39 @@ async function updatePackageJsonFile(path) {
         })
     }
 
+    if ((args.gradleMemoryXmx || args.gradleMaxMetaspaceSize) && args.platform === 'android') {
+        await readAndReplaceFileContent(`${config.src}/android/gradle.properties`, content => {
+            let jvmArgsLine = (content.match(/^org\.gradle\.jvmargs=(.*)$/m) || [])[1];
+            
+            if (jvmArgsLine) {
+                if (args.gradleMemoryXmx) {
+                    if (jvmArgsLine.match(/-Xmx\d+[gmkGMK]?/)) {
+                        jvmArgsLine = jvmArgsLine.replace(/-Xmx\d+[gmkGMK]?/, `-Xmx${args.gradleMemoryXmx}m`);
+                    } else {
+                        jvmArgsLine += ` -Xmx${args.gradleMemoryXmx}m`;
+                    }
+                }
+                if (args.gradleMaxMetaspaceSize) {
+                    if (jvmArgsLine.match(/-XX:MaxMetaspaceSize=\d+[gmkGMK]?/)) {
+                        jvmArgsLine = jvmArgsLine.replace(/-XX:MaxMetaspaceSize=\d+[gmkGMK]?/, `-XX:MaxMetaspaceSize=${args.gradleMaxMetaspaceSize}m`);
+                    } else {
+                        jvmArgsLine += ` -XX:MaxMetaspaceSize=${args.gradleMaxMetaspaceSize}m`;
+                    }
+                }
+                return content.replace(/^org\.gradle\.jvmargs=.*$/m, `org.gradle.jvmargs=${jvmArgsLine.trim()}`);
+            } else {
+                let newArgs = '';
+                if (args.gradleMemoryXmx) {
+                    newArgs += `-Xmx${args.gradleMemoryXmx}m `;
+                }
+                if (args.gradleMaxMetaspaceSize) {
+                    newArgs += `-XX:MaxMetaspaceSize=${args.gradleMaxMetaspaceSize}m`;
+                }
+                return content + `\norg.gradle.jvmargs=${newArgs.trim()}`;
+            }
+        });
+    }
+
     config.outputDirectory = config.src + 'output/';
     config.logDirectory = config.outputDirectory + 'logs/';
     logger.info({
