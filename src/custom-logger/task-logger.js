@@ -16,13 +16,26 @@ class CustomSpinnerBar {
         this.spinner = options.spinner || [
             "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
         ];
-        this.interval = options.interval || 80;
         this.stream = process.stderr;
         this.frameIndex = 0;
         this.isSpinning = false;
         this.spinnerInterval = null;
-
-        this.progressBar = new ProgressBar(options);
+        this.lastOutput = '';
+        this.lastProgressValue = -1;
+        this.renderCount = 0;
+        
+        this.startTime = null;
+        
+        // Only render every 10th frame to reduce I/O operations
+        this.renderThrottle = 10;
+        
+        // Set default colors if not provided
+        const progressBarOptions = {
+            completeColor: 'green',
+            incompleteColor: 'gray',
+            ...options
+        };
+        this.progressBar = new ProgressBar(progressBarOptions);
     }
 
     start(text) {
@@ -30,21 +43,60 @@ class CustomSpinnerBar {
         if (text) this.text = text;
         this.isSpinning = true;
         this.frameIndex = 0;
+        this.renderCount = 0;
+        this.startTime = Date.now();
         this.resetProgressBar();
         this.progressBar.start();
-        this.render();
-        this.spinnerInterval = setInterval(() => this.render(), this.interval);
+        
+        // Render immediately on start
+        this.render(true);
+        
+        // Balanced interval for good responsiveness without performance impact
+        this.spinnerInterval = setInterval(() => {
+            this.frameIndex = (this.frameIndex + 1) % this.spinner.length;
+            this.renderCount++;
+            
+            // Render every 5th frame for balanced performance and responsiveness
+            if (this.renderCount % 5 === 0) {
+                this.render();
+            }
+        }, 200); // Keep 200ms interval for good performance
+        
         return this;
     }
 
     stop() {
         if (global.verbose) return this;
         this.isSpinning = false;
-        clearInterval(this.spinnerInterval);
-        this.spinnerInterval = null;
-        readline.clearLine(this.stream, 0);
-        readline.cursorTo(this.stream, 0);
+        if (this.spinnerInterval) {
+            clearInterval(this.spinnerInterval);
+            this.spinnerInterval = null;
+        }
+        this.clearLine();
         return this;
+    }
+
+    getElapsedTime() {
+        if (!this.startTime) return 0;
+        return this.formatTime(Date.now() - this.startTime);
+    }
+
+    formatTime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const ms = milliseconds % 1000;
+        
+        if (seconds < 60) {
+            return `${seconds}.${Math.floor(ms / 100)}s`;
+        }
+        
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+
+    getTimestamp() {
+        const now = new Date();
+        return now.toTimeString().split(' ')[0];
     }
 
     succeed(text) {
@@ -52,11 +104,10 @@ class CustomSpinnerBar {
         this.stop();
 
         this.progressBar.setProgress(this.progressBar.total);
-
-        let output = `${chalk.green("✔")} ${text || this.text}`;
-        output += " " + this.progressBar.render();
-
-        this.stream.write(`${output}\n`);
+        const finalText = text || this.text;
+        const output = `${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.green("✔")} ${finalText} ${this.progressBar.render()} ${chalk.gray(`(${this.getElapsedTime()})`)}`;
+        this.clearLine();
+        this.writeLine(output);
         return this;
     }
 
@@ -67,42 +118,67 @@ class CustomSpinnerBar {
         if(global.logDirectory){
             finalText += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
         }
-        this.stream.write(`${chalk.red('✖')} ${chalk.bold.red(finalText)}\n`);
+        
+        this.clearLine();
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.red('✖')} ${chalk.bold.red(finalText)} ${chalk.gray(`(${this.getElapsedTime()})`)}`);
         process.exit(1);
-        // return this;
     }
 
     info(text) {
         if (global.verbose) return this;
         this.stop();
-        this.stream.write(`${chalk.blue("ℹ")} ${text || this.text}\n`);
+        this.clearLine();
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.blue("ℹ")} ${text || this.text}`);
         return this;
     }
 
     warn(text) {
         if (global.verbose) return this;
         this.stop();
-        this.stream.write(`${chalk.yellow("⚠")} ${text || this.text}\n`);
+        this.clearLine();
+        this.writeLine(`${chalk.gray(`[${this.getTimestamp()}]`)} ${chalk.yellow("⚠")} ${text || this.text}`);
         return this;
     }
 
-    render() {
+    render(force = false) {
         if (global.verbose) return;
-        readline.clearLine(this.stream, 0);
-        readline.cursorTo(this.stream, 0);
-    
+        
         const frame = this.spinner[this.frameIndex] || '';
         const progressBar = this.progressBar?.render() || '';
         const overallProgress = overallProgressBar?.render() || '';
+        
+        // Show only one progress bar - prefer the local one if enabled, otherwise show overall
+        const displayProgress = this.progressBar.status() ? progressBar : (overallProgressBar.status() ? overallProgress : '');
+        const output = `${chalk.cyan(frame)} ${this.text} ${displayProgress}`;
+        
+        const outputChanged = output !== this.lastOutput
+        const progressChanged = this.progressBar.value !== this.lastProgressValue;
+        if (force || progressChanged || !this.lastOutput || outputChanged) {
+            this.clearLine();
+            this.stream.write(output);
+            this.lastOutput = output;
+            this.lastProgressValue = this.progressBar.value;
+        }
+    }
     
-        const output = `${chalk.cyan(frame)} ${this.text} ${progressBar} ${overallProgressBar.status() ?`| ${overallProgress}` : ''}`;
-        this.stream.write(output);
+    // Helper methods to reduce code duplication
+    clearLine() {
+        readline.clearLine(this.stream, 0);
+        readline.cursorTo(this.stream, 0);
+    }
     
-        this.frameIndex = (this.frameIndex + 1) % this.spinner.length;
+    writeLine(text) {
+        this.stream.write(`${text}\n`);
     }
     
     setText(text) {
-        this.text = text;
+        if (this.text !== text) {
+            this.text = text;
+            // Force render when text changes
+            if (this.isSpinning) {
+                this.render(true);
+            }
+        }
         return this;
     }
 
@@ -113,14 +189,23 @@ class CustomSpinnerBar {
     }
 
     setProgress(value) {
+        const oldValue = this.progressBar.value;
         this.progressBar.setProgress(value);
-        overallProgressBar.setProgress(value);
+        
+        // Only update overall progress bar if local progress bar is not enabled
+        if (!this.progressBar.status()) {
+            overallProgressBar.setProgress(value);
+        }
+        
+        // Force render only on significant progress changes to avoid performance impact
+        if (Math.abs(value - oldValue) >= 0.5 && this.isSpinning) {
+            this.render(true);
+        }
         return this;
     }
 
     incrementProgress(amount = 1) {
-        this.progressBar.incrementProgress(amount);
-        overallProgressBar.incrementProgress(amount);
+        this.setProgress(this.progressBar.value + amount);
         return this;
     }
 
