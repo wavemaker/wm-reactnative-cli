@@ -18,6 +18,7 @@ const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
 const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
 let WM_PLATFORM_VERSION = '';
+let isAuthenticated = false;
 
 async function findProjectId(config) {
     const projectList = (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
@@ -142,6 +143,17 @@ async function gitResetAndPull(tempDir, projectDir){
 }
 
 async function pullChanges(projectId, config, projectDir) {
+    isAuthenticated = await checkAuthCookie(config);
+
+    if (!isAuthenticated) {
+        console.log(chalk.yellow('\n⚠  Authentication Required'));
+        console.log(chalk.gray('━'.repeat(50)));
+        console.log(chalk.white('\nYour session has expired. Please authenticate to continue.'));
+        console.log(chalk.cyan(`\n→ Generate token: ${config.baseUrl}/studio/services/auth/token\n`));
+        config.authCookie = await authenticateWithToken(config, false);
+        global.localStorage.setItem(STORE_KEY, config.authCookie);
+    }
+
     try {
     const output = await exec('git', ['rev-parse', 'HEAD'], {
         cwd: projectDir
@@ -363,7 +375,7 @@ async function setup(previewUrl, projectName, authToken) {
         appPreviewUrl: previewUrl,
         projectName: projectName
     };
-    const isAuthenticated = await checkAuthCookie(config);
+    isAuthenticated = await checkAuthCookie(config);
     if (!isAuthenticated) {
         //console.log(`Need to login to Studio (${config.baseUrl}). \n Please enter your Studio credentails.`);
         //config.authCookie = await authenticateWithUserNameAndPassword(config);
