@@ -10,7 +10,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer } = require('./utils');
+const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows } = require('./utils');
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion} = require('./requirements');
 const axios = require('axios');
@@ -303,9 +303,7 @@ function getExpoProjectDir(projectDir) {
         return `${projectDir}/target/generated-rn-web-app`;
     }
     if (isWindowsOS()){
-        const expoDirHash = crypto.createHash("shake256", { outputLength: 8 }).update(`${projectDir}/target/generated-expo-app`).digest("hex");
-        expoDirectoryHash = expoDirHash;
-        return path.resolve(`${global.rootDir}/wm-preview/` + expoDirHash);    
+        return getDestPathForWindows('preview');
     }
     return `${projectDir}/target/generated-expo-app`;
 }
