@@ -34,6 +34,7 @@ const chalk = require('chalk');
 var isWebPreview = false;
 var useProxy = false;
 var expoDirectoryHash = "";
+let windowsPreviewDir = "";
 let rnAppPath = "";
 let etag = "";
 let isExpoPreviewContainer = false;
@@ -302,8 +303,8 @@ function getExpoProjectDir(projectDir) {
     if (isWebPreview) {
         return `${projectDir}/target/generated-rn-web-app`;
     }
-    if (isWindowsOS()){
-        return getDestPathForWindows('preview');
+    if (isWindowsOS()) {
+        return windowsPreviewDir;
     }
     return `${projectDir}/target/generated-expo-app`;
 }
@@ -316,12 +317,19 @@ async function setup(previewUrl, _clean, authToken) {
     const projectDir = `${global.rootDir}/wm-projects/${projectName.replace(/\s+/g, '_').replace(/\(/g, '_').replace(/\)/g, '_')}`;
     if (_clean) {
         clean(projectDir);
-        if(isWindowsOS() && expoDirectoryHash){
-            const projectDirHash = `${global.rootDir}/wm-preview/${expoDirectoryHash}`;
-            clean(projectDirHash);
+        if (isWindowsOS() && windowsPreviewDir) {
+            clean(windowsPreviewDir);
         }
     } else {
         fs.mkdirpSync(getWmProjectDir(projectDir));
+    }
+    if (isWindowsOS()) {
+        try {
+            windowsPreviewDir = await getDestPathForWindows('preview', projectDir);
+        } catch (e) {
+            taskLogger.fail(e.message);
+            throw e;
+        }
     }
     taskLogger.incrementProgress(0.5);
     taskLogger.succeed(previewSteps[0].succeed);

@@ -2,6 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const axios = require('axios');
 const path = require('path');
+const crypto = require('crypto');
 
 function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
@@ -42,7 +43,7 @@ async function isExpoWebPreviewContainer(previewUrl) {
     return response.data.includes("index.bundle") && response.data.includes("platform=web");
 }
 
-async function getDestPathForWindows(mode){
+async function getDestPathForWindows(mode, projectDir = ''){
     const MAX_DIR_HASH_TRIES = 4;
     let destHash = '';
     let destPath = '';
