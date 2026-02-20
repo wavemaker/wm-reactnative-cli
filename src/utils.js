@@ -3,6 +3,10 @@ const os = require('os');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
+const logger = require('./logger');
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const loggerLabel = 'wm-reactnative-cli';
+
 
 function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
@@ -56,7 +60,7 @@ async function getDestPathForWindows(mode, projectDir = ''){
         appendPath = '/' ;
     }
     for (; tryCount < MAX_DIR_HASH_TRIES; tryCount++) {
-        destHash = crypto.createHash("shake256", { outputLength: 1 }).update(updatePath).digest("hex");
+        destHash = crypto.createHash("shake256", { outputLength: 1 }).update(updatePath).update(String(Date.now())).digest("hex");
         destPath = path.resolve(`${global.rootDir}/${mode}/` + destHash + appendPath); 
       if (!fs.existsSync(destPath)) break;
     }
