@@ -19,7 +19,7 @@ const loggerLabel = 'android-build';
 function setKeyStoreValuesInGradleProps(content, keystoreName, ksData) {
     // TODO: if key pwds are changed, then just update the values.
     if(content.search(/MYAPP_UPLOAD_STORE_PASSWORD/gm) == -1) {
-        return content.concat(` \n MYAPP_UPLOAD_STORE_FILE=${keystoreName}
+        return content.concat(`\nMYAPP_UPLOAD_STORE_FILE=${keystoreName}
         MYAPP_UPLOAD_KEY_ALIAS=${ksData.keyAlias}
         MYAPP_UPLOAD_STORE_PASSWORD=${ksData.storePassword}
         MYAPP_UPLOAD_KEY_PASSWORD=${ksData.keyPassword}`);
