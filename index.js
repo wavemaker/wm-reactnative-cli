@@ -79,6 +79,16 @@ const args = require('yargs')
                     type: 'array',
                     choices: ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'],
                 })
+                .option('gradle-memory-xmx', {
+                    alias: 'gmx',
+                    describe: 'Specify JVM heap size for Gradle daemon in MB (e.g., 2048)',
+                    type: 'number'
+                })
+                .option('gradle-max-metaspace-size', {
+                    alias: 'gmms',
+                    describe: 'Specify JVM max metaspace size for Gradle daemon in MB (e.g., 512)',
+                    type: 'number'
+                })
             }, args => {
                 args.platform = 'android';
                 if(args.interactive){

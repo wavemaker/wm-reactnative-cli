@@ -81,6 +81,8 @@ wm-reactnative build android <src_dir> [additional_arguments]
 |**\-\-aKeyPassword**|Key Password|
 |**\-\-buildType**|**DEFAULT:** development<br>development or production<br>Use ‘production’ with keystore specified.|
 |**\-\-architecture**|Specifies the target Application Binary Interfaces (ABIs) for the build.<br>**DEFAULT:** All <br>**CHOICES:** armeabi-v7a, arm64-v8a, x86, x86_64. <br>**Example for single ABI:** --architecture=armeabi-v7a <br>**Example for multiple ABIs:** --architecture=armeabi-v7a  --architecture=arm64-v8a |
+|**\-\-gradle-memory-xmx**|**OPTIONAL:** Specify JVM heap size for Gradle daemon in MB.<br>**Example:** --gradle-memory-xmx=2048|
+|**\-\-gradle-max-metaspace-size**|**OPTIONAL:** Specify JVM max metaspace size for Gradle daemon in MB.<br>**Example:** --gradle-max-metaspace-size=512|
 
 
 ### Example 1
