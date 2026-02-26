@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const config = require('./config');
 const ios = require('./ios');
 const { resolve } = require('path');
-const { isWindowsOS, readAndReplaceFileContent } = require('./utils');
+const { isWindowsOS, readAndReplaceFileContent, getDestPathForWindows } = require('./utils');
 const chalk = require('chalk');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const loggerLabel = 'wm-reactnative-cli';
@@ -266,8 +266,7 @@ async function setupBuildDirectory(src, dest, platform) {
         taskLogger.incrementProgress(1);
         dest = dest || await getDefaultDestination(metadata.id, platform);
         if(isWindowsOS()){
-            const buildDirHash = crypto.createHash("shake256", { outputLength: 8 }).update(dest).digest("hex");
-            dest = path.resolve(`${global.rootDir}/wm-build/` + buildDirHash + "/");
+            dest = await getDestPathForWindows('build');
         }
         dest = path.resolve(dest)  + '/';
         if(src === dest) {

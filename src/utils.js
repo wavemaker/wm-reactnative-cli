@@ -1,6 +1,12 @@
 const fs = require('fs');
 const os = require('os');
 const axios = require('axios');
+const path = require('path');
+const crypto = require('crypto');
+const logger = require('./logger');
+const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const loggerLabel = 'wm-reactnative-cli';
+
 
 function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
@@ -41,10 +47,39 @@ async function isExpoWebPreviewContainer(previewUrl) {
     return response.data.includes("index.bundle") && response.data.includes("platform=web");
 }
 
+async function getDestPathForWindows(mode, projectDir = ''){
+    const MAX_DIR_HASH_TRIES = 4;
+    let destHash = '';
+    let destPath = '';
+    let tryCount = 0;
+    let updatePath = '';
+    let appendPath = '';
+    if(mode == 'preview') {
+        updatePath = `${projectDir}/target/generated-expo-app`;
+    } else if (mode == 'build'){
+        appendPath = '/' ;
+    }
+    for (; tryCount < MAX_DIR_HASH_TRIES; tryCount++) {
+        destHash = crypto.createHash("shake256", { outputLength: 1 }).update(updatePath).update(String(Date.now())).digest("hex");
+        destPath = path.resolve(`${global.rootDir}/${mode}/` + destHash + appendPath); 
+      if (!fs.existsSync(destPath)) break;
+    }
+    if (tryCount === MAX_DIR_HASH_TRIES && fs.existsSync(destPath)) {
+        logger.error({
+            label: loggerLabel,
+            message: `Could not create a directory under ${mode} folder after ` + MAX_DIR_HASH_TRIES + ' attempts. Please try again.'
+        });
+        taskLogger.fail(`Could not create a directory under ${mode} foder. Please try again.`);
+        return;
+    }
+    return  destPath;
+}
+
 module.exports = {
     isWindowsOS: isWindowsOS,
     readAndReplaceFileContent: readAndReplaceFileContent,
     iterateFiles: iterateFiles,
     streamToString: streamToString,
-    isExpoWebPreviewContainer: isExpoWebPreviewContainer
+    isExpoWebPreviewContainer: isExpoWebPreviewContainer, 
+    getDestPathForWindows: getDestPathForWindows
 };
