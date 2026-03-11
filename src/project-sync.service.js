@@ -18,6 +18,7 @@ const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
 const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
 let WM_PLATFORM_VERSION = '';
+let IS_AI_PLATFORM = false;
 
 async function findProjectId(config) {
     const projectList = (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
@@ -28,6 +29,7 @@ async function findProjectId(config) {
         .filter(p => (config.appPreviewUrl.endsWith(p.name + "_" + p.vcsBranchId)));
     if (project && project.length) {
         WM_PLATFORM_VERSION = project[0].platformVersion;
+        IS_AI_PLATFORM = /\.wavemaker\.ai/.test(config.baseUrl);
         return project[0].studioProjectId;
     }
 }
@@ -54,7 +56,7 @@ async function downloadProject(projectId, config, projectDir) {
     taskLogger.start(previewSteps[2].start);
     taskLogger.setTotal(previewSteps[2].total)
     const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
-    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
+    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0') && !IS_AI_PLATFORM) {
         const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitInit`, {
             responseType: 'stream',
             headers: {
@@ -150,7 +152,7 @@ async function pullChanges(projectId, config, projectDir) {
     logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
     taskLogger.start('pulling new changes from studio...');
     const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
-    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0')) {
+    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0') && !IS_AI_PLATFORM) {
         const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
         console.log(tempFile);
         const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/remoteChanges?headCommitId=${headCommitId}`, {
