@@ -315,14 +315,6 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.incrementProgress(0.5);
     const projectName = await getProjectName(previewUrl);
     const projectDir = `${global.rootDir}/wm-projects/${projectName.replace(/\s+/g, '_').replace(/\(/g, '_').replace(/\)/g, '_')}`;
-    if (_clean) {
-        clean(projectDir);
-        if (isWindowsOS() && windowsPreviewDir) {
-            clean(windowsPreviewDir);
-        }
-    } else {
-        fs.mkdirpSync(getWmProjectDir(projectDir));
-    }
     if (isWindowsOS()) {
         try {
             windowsPreviewDir = await getDestPathForWindows('preview', projectDir);
@@ -330,6 +322,14 @@ async function setup(previewUrl, _clean, authToken) {
             taskLogger.fail(e.message);
             throw e;
         }
+    }
+    if (_clean) {
+        clean(projectDir);
+        if (isWindowsOS() && windowsPreviewDir) {
+            clean(windowsPreviewDir);
+        }
+    } else {
+        fs.mkdirpSync(getWmProjectDir(projectDir));
     }
     taskLogger.incrementProgress(0.5);
     taskLogger.succeed(previewSteps[0].succeed);

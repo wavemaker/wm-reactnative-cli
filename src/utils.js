@@ -48,30 +48,19 @@ async function isExpoWebPreviewContainer(previewUrl) {
 }
 
 async function getDestPathForWindows(mode, projectDir = ''){
-    const MAX_DIR_HASH_TRIES = 4;
     let destHash = '';
     let destPath = '';
-    let tryCount = 0;
     let updatePath = '';
     let appendPath = '';
+
     if(mode == 'preview') {
         updatePath = `${projectDir}/target/generated-expo-app`;
     } else if (mode == 'build'){
         appendPath = '/' ;
     }
-    for (; tryCount < MAX_DIR_HASH_TRIES; tryCount++) {
-        destHash = crypto.createHash("shake256", { outputLength: 1 }).update(updatePath).update(String(Date.now())).digest("hex");
-        destPath = path.resolve(`${global.rootDir}/${mode}/` + destHash + appendPath); 
-      if (!fs.existsSync(destPath)) break;
-    }
-    if (tryCount === MAX_DIR_HASH_TRIES && fs.existsSync(destPath)) {
-        logger.error({
-            label: loggerLabel,
-            message: `Could not create a directory under ${mode} folder after ` + MAX_DIR_HASH_TRIES + ' attempts. Please try again.'
-        });
-        taskLogger.fail(`Could not create a directory under ${mode} foder. Please try again.`);
-        return;
-    }
+
+    destHash = crypto.createHash("shake256", { outputLength: 1 }).update(updatePath).digest("hex");
+    destPath = path.resolve(`${global.rootDir}/${mode}/` + destHash + appendPath); 
     return  destPath;
 }
 
