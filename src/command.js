@@ -35,7 +35,7 @@ async function updatePackageJsonFile(path) {
         const jsonData = JSON.parse(data);
         jsonData['main'] = "index";
         if (config.embed) {
-            jsonData['dependencies']['@wavemaker/expo-native-module'] = "latest";
+            jsonData['dependencies']['@wavemaker-ai/expo-native-module'] = "latest";
         }
         if(!jsonData['devDependencies']['@babel/plugin-proposal-optional-chaining']){
             jsonData['devDependencies']['@babel/plugin-proposal-optional-chaining'] = "^7.21.0";
@@ -376,7 +376,7 @@ async function ejectProject(args) {
         });
         if (args.localrnruntimepath) {
             const linkFolderPath =
-            config.src + 'node_modules/@wavemaker/app-rn-runtime';
+            config.src + 'node_modules/@wavemaker-ai/app-rn-runtime';
             // using removeSync when target is directory and unlinkSync works when target is file.
             if (fs.existsSync(linkFolderPath)) {
                 fs.removeSync(linkFolderPath);

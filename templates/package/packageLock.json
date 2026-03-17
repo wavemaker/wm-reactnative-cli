@@ -24,11 +24,11 @@
         "@react-native/metro-babel-transformer": "0.81.4",
         "@react-navigation/drawer": "7.5.8",
         "@react-navigation/native": "7.1.18",
-        "@wavemaker/app-rn-runtime": "file:.yalc/@wavemaker/app-rn-runtime",
-        "@wavemaker/react-native-ssl-publickey": "1.0.2",
-        "@wavemaker/rn-codegen": "file:.yalc/@wavemaker/rn-codegen",
-        "@wavemaker/variables": "file:.yalc/@wavemaker/variables",
-        "@wavemaker/wavepulse-agent": "1.0.11",
+        "@wavemaker-ai/app-rn-runtime": "file:.yalc/@wavemaker-ai/app-rn-runtime",
+        "@wavemaker-ai/react-native-ssl-publickey": "1.0.2",
+        "@wavemaker-ai/rn-codegen": "file:.yalc/@wavemaker-ai/rn-codegen",
+        "@wavemaker-ai/variables": "file:.yalc/@wavemaker-ai/variables",
+        "@wavemaker-ai/wavepulse-agent": "1.0.11",
         "expo": "54.0.12",
         "expo-application": "7.0.7",
         "expo-av": "16.0.7",
@@ -100,9 +100,9 @@
         "webpack-dev-middleware": "6.1.2"
       }
     },
-    ".yalc/@wavemaker/app-rn-runtime": {},
-    ".yalc/@wavemaker/rn-codegen": {},
-    ".yalc/@wavemaker/variables": {},
+    ".yalc/@wavemaker-ai/app-rn-runtime": {},
+    ".yalc/@wavemaker-ai/rn-codegen": {},
+    ".yalc/@wavemaker-ai/variables": {},
     "node_modules/@0no-co/graphql.web": {
       "version": "1.2.0",
       "resolved": "https://repository.wavemaker.com/repository/wavemaker-npm-repo/@0no-co/graphql.web/-/graphql.web-1.2.0.tgz",
@@ -4501,13 +4501,13 @@
         "@urql/core": "^5.0.0"
       }
     },
-    "node_modules/@wavemaker/app-rn-runtime": {
-      "resolved": ".yalc/@wavemaker/app-rn-runtime",
+    "node_modules/@wavemaker-ai/app-rn-runtime": {
+      "resolved": ".yalc/@wavemaker-ai/app-rn-runtime",
       "link": true
     },
-    "node_modules/@wavemaker/react-native-ssl-publickey": {
+    "node_modules/@wavemaker-ai/react-native-ssl-publickey": {
       "version": "1.0.2",
-      "resolved": "https://repository.wavemaker.com/repository/wavemaker-npm-repo/@wavemaker/react-native-ssl-publickey/-/react-native-ssl-publickey-1.0.2.tgz",
+      "resolved": "https://repository.wavemaker.com/repository/wavemaker-npm-repo/@wavemaker-ai/react-native-ssl-publickey/-/react-native-ssl-publickey-1.0.2.tgz",
       "integrity": "sha512-/yJlMZC1IU34fiIGcc6Y/TyXc+De5QOxio7VQakgusBW/fPmmGiVIzUrrn/EyvB2MNyed7szpVoHrrzGPBC6/A==",
       "license": "Apache-2.0",
       "peerDependencies": {
@@ -4516,17 +4516,17 @@
         "react-native": "*"
       }
     },
-    "node_modules/@wavemaker/rn-codegen": {
-      "resolved": ".yalc/@wavemaker/rn-codegen",
+    "node_modules/@wavemaker-ai/rn-codegen": {
+      "resolved": ".yalc/@wavemaker-ai/rn-codegen",
       "link": true
     },
-    "node_modules/@wavemaker/variables": {
-      "resolved": ".yalc/@wavemaker/variables",
+    "node_modules/@wavemaker-ai/variables": {
+      "resolved": ".yalc/@wavemaker-ai/variables",
       "link": true
     },
-    "node_modules/@wavemaker/wavepulse-agent": {
+    "node_modules/@wavemaker-ai/wavepulse-agent": {
       "version": "1.0.11",
-      "resolved": "https://repository.wavemaker.com/repository/wavemaker-npm-repo/@wavemaker/wavepulse-agent/-/wavepulse-agent-1.0.11.tgz",
+      "resolved": "https://repository.wavemaker.com/repository/wavemaker-npm-repo/@wavemaker-ai/wavepulse-agent/-/wavepulse-agent-1.0.11.tgz",
       "integrity": "sha512-zmz81QMYjT+KvrK2qoawO6YTZjtjycj3TrgIdF+Mm7N5wGjIEGeM8kTTtTZWlB9shZA80VS6mtrwOMRT/XXS7w==",
       "license": "ISC",
       "dependencies": {

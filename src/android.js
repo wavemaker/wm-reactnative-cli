@@ -349,7 +349,7 @@ async function embed(args) {
         (content) => content.replace('props = props || {};', 'props = props || {};\n\tprops.landingPage = props.landingPage || props.pageName;'));    
     fs.mkdirpSync(`${config.src}/android-embed/rnApp/src/main/assets`);
     await readAndReplaceFileContent(
-        `${args.dest}/node_modules/@wavemaker/app-rn-runtime/components/dialogs/dialogcontent/dialogcontent.component.js`,
+        `${args.dest}/node_modules/@wavemaker-ai/app-rn-runtime/components/dialogs/dialogcontent/dialogcontent.component.js`,
         (content) => content.replace('height', 'maxHeight'));
     await exec('npx', ['expo', 'export:embed', '--platform',  'android',
             '--dev', 'false', '--entry-file', 'index.js',

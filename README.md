@@ -7,7 +7,7 @@ The main goal of wm-reactnative-cli is to simplify generation of APK or IPA for 
 ### Command to Install
 
 ~~~
-npm install -g @wavemaker/wm-reactnative-cli
+npm install -g @wavemaker-ai/wm-reactnative-cli
 ~~~
 
 ### Adding Environment Variable
@@ -112,7 +112,7 @@ wm-reactnative build android "/path/to/src" \
 -   Yarn (npm install -g yarn)
 -   Apple developer or distribution P12 certificates
 -   Provisioning profile
--   Install wm-reactnative-cli (npm install -g @wavemaker/wm-reactnative-cli)
+-   Install wm-reactnative-cli (npm install -g @wavemaker-ai/wm-reactnative-cli)
 -   For development build, development certificate and development provisioning file are required.
 -   For production build, distribution certificate and distribution provisioning file are required.
 -   Use Libre SSL (brew install libressl). Make sure openssl (openssl version) should use Libre ssl.
