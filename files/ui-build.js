@@ -310,7 +310,7 @@ if (args.targetPlatform === '"web-preview"') {
                 <div>
                     <div style="background-color: #ccc;color: #333; padding: 16px;
                         border-radius: 8px; font-family:monospace, 'Courier New', Courier;overflow: auto;margin: 8px 0;">
-                        wm-reactnative run web-preview 
+                        wm-ai-reactnative run web-preview 
                         <script>
                             document.write('"' + location.href.split('/rn-bundle')[0] + '"')
                         </script>

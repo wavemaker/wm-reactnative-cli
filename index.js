@@ -28,10 +28,8 @@ global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnat
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
 // src is the web react native project zip
 
-console.log('local cli====k')
-
 async function handleDeprecatedCommands(args) {
-    const syncCommand = `wm-reactnative sync ${args.previewUrl} ${args.clean ? '--clean' : ''} ${args.useProxy ? '--useProxy' : ''}`;
+    const syncCommand = `wm-ai-reactnative sync ${args.previewUrl} ${args.clean ? '--clean' : ''} ${args.useProxy ? '--useProxy' : ''}`;
     const response = await showConfirmation(
         `Would you like to execute ${syncCommand} (yes/no) ?`
     );

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "wm-reactnative": "./index.js"
+    "wm-ai-reactnative": "./index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
