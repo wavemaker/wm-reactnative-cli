@@ -1,0 +1,13 @@
+---
+description: WaveMaker React Native platform engineering constraints
+alwaysApply: true
+---
+
+# WaveMaker RN Platform Rules
+
+- Generated Expo apps must NOT be edited directly. All changes originate from codegen templates or runtime source.
+- Three repos must stay in sync: `wavemaker-rn-codegen` (template), `wavemaker-rn-runtime`, `wm-reactnative-cli`.
+- Template uses `file:.yalc/...` for `@wavemaker/app-rn-runtime`, `@wavemaker/variables`, `@wavemaker/rn-codegen` — these are local dev links, not npm versions.
+- Build order: runtime → codegen → verify template → CLI.
+- Shared dependencies (`react`, `react-native`, `expo-*`, `react-native-*`, `@react-navigation/*`) must have identical versions across all repos.
+- Prefer scripts over manual commands. Check `scripts/` before writing inline bash.

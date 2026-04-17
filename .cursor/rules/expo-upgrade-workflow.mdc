@@ -1,0 +1,14 @@
+---
+description: Expo SDK upgrade workflow rules
+globs: 
+alwaysApply: false
+---
+
+# Expo Upgrade Workflow
+
+- Changelog URL: `https://expo.dev/changelog/sdk-{MAJOR}` (never full semver in URL).
+- When RN version changes, `@react-native/*` scoped packages must match the new RN version.
+- Run `scripts/validate-versions.sh` to check cross-repo version alignment before finalizing.
+- After updating runtime, run `npm run build` (yalc-publishes automatically) before verifying template.
+- Do NOT auto-apply breaking change fixes. Present findings to user, wait for confirmation.
+- Use `npx expo install --fix` in the template project to determine SDK-compatible module versions.

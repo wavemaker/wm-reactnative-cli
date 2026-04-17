@@ -301,6 +301,9 @@ async function installDependencies(projectDir) {
         readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
     }
     if(expoVersion != '52.0.17' && expoVersion != '54.0.12'){
+        if(!fs.existsSync(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`)){
+            return null;
+        }
         readAndReplaceFileContent(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`, (c) => {
             if (c.indexOf('@koale/useworker') > 0) {
                 return fs.readFileSync(`${__dirname}/../templates/expo-camera-patch/useWebQRScanner.js`, {
