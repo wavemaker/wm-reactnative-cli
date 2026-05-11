@@ -2,7 +2,6 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
-const request = require('request');
 const os = require('os');
 const rimraf = require("rimraf");
 const open = require('open');
@@ -10,7 +9,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows } = require('./utils');
+const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl } = require('./utils');
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion} = require('./requirements');
 const axios = require('axios');
@@ -62,7 +61,7 @@ function launchServiceProxy(projectDir, previewUrl) {
             let tUrl = req.url;
             if (req.url === '/' || req.url.startsWith('/rn-bundle')) {
                 tUrl = `http://localhost:${webPreviewPort}${req.url}`;
-                req.pipe(request(tUrl)).pipe(res);
+                pipeRequestToUrl(req, res, tUrl);
             } else {
                 proxy.web(req, res, {
                     target: previewUrl,

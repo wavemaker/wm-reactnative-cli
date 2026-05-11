@@ -2,7 +2,6 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
-const request = require('request');
 const os = require('os');
 const rimraf = require("rimraf");
 const semver = require('semver');
@@ -12,7 +11,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, streamToString, isExpoWebPreviewContainer } = require('./utils');
+const { readAndReplaceFileContent, isExpoWebPreviewContainer, pipeRequestToUrl } = require('./utils');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -22,6 +21,23 @@ let webPreviewPort = 19006;
 const proxyPort = 19009;
 let proxyUrl = `http://localhost:${proxyPort}`;
 const loggerLabel = 'expo-launcher';
+
+function resolveExpoCliOpenJs(expoDir) {
+    const candidates = [
+        path.join(expoDir, 'node_modules', '@expo', 'cli', 'build', 'src', 'utils', 'open.js'),
+        path.join(expoDir, 'node_modules', 'expo', 'node_modules', '@expo', 'cli', 'build', 'src', 'utils', 'open.js'),
+    ];
+    const found = candidates.find((p) => fs.existsSync(p));
+    if (found) {
+        return found;
+    }
+    try {
+        return require.resolve('@expo/cli/build/src/utils/open.js', { paths: [expoDir] });
+    } catch (_) {
+        return null;
+    }
+}
+
 let codegen = '';
 let rnAppPath = '';
 let packageLockJsonFile = '';
@@ -76,15 +92,21 @@ function launchServiceProxy(projectDir, previewUrl) {
                 }
                 res.setHeader('Content-Location', url);
                 if (url.indexOf('/index.bundle') > 0) {
-                    streamToString(request(tUrl)).then(content => {
-                        content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
-                        res.write(content);
-                        res.end();
-                    });
+                    axios.get(tUrl, { responseType: 'text' })
+                        .then(({ data: content }) => {
+                            content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
+                            res.write(content);
+                            res.end();
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            if (!res.headersSent) {
+                                res.writeHead(502);
+                            }
+                            res.end();
+                        });
                 } else {
-                    req.pipe(request(tUrl, function(error, res, body){
-                        //error && console.log(error);
-                    })).pipe(res);
+                    pipeRequestToUrl(req, res, tUrl);
                 }
             } 
         } catch(e) {
@@ -294,11 +316,23 @@ async function installDependencies(projectDir) {
     const nodeModulesDir = `${expoDir}/node_modules/@wavemaker/app-rn-runtime`;
     if(expoVersion != '54.0.12'){
         // To remove openBrowser()
-        readAndReplaceFileContent(`${expoDir}/node_modules/open/index.js`, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
-        readAndReplaceFileContent(`${expoDir}/node_modules/@expo/cli/build/src/utils/open.js`, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
-        readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        const openModule = path.join(expoDir, 'node_modules', 'open', 'index.js');
+        if (fs.existsSync(openModule)) {
+            await readAndReplaceFileContent(openModule, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
+        }
+        const expoCliOpen = resolveExpoCliOpenJs(expoDir);
+        if (expoCliOpen) {
+            await readAndReplaceFileContent(expoCliOpen, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/core/base.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/input/rating/rating.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
     }
     if(expoVersion != '52.0.17' && expoVersion != '54.0.12'){
         if(!fs.existsSync(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`)){
