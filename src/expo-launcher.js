@@ -140,8 +140,11 @@ function getIpAddress() {
 async function updatePackageJsonFile(path) {
     let data = fs.readFileSync(path, 'utf-8');
     const jsonData = JSON.parse(data);
-    if(semver.eq(jsonData["dependencies"]["expo"], "54.0.12")){
-        //do nothing
+    const expoVer = semver.coerce(jsonData["dependencies"]["expo"]);
+    if(expoVer && semver.gte(expoVer, "54.0.12")){
+        if(isWebPreview && semver.lt(expoVer, "56.0.0")){
+            jsonData['dependencies']['react-native-svg'] = '13.4.0';
+        }
     }
     else{
         if (jsonData['dependencies']['expo-file-system'] === '^15.1.1') {
@@ -170,15 +173,9 @@ async function transpile(projectDir, previewUrl, incremental) {
             let templatePackageJsonFile = path.resolve(`${process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE}/wavemaker-rn-codegen/src/templates/project/package.json`);
             let templatePackageJsonDir = path.resolve(`${process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE}/wavemaker-rn-codegen/src/templates/project/`);
             const packageJson = require(templatePackageJsonFile);
-            if(semver.eq(packageJson["dependencies"]["expo"], "52.0.17")){
+            const templateExpoVer = semver.coerce(packageJson["dependencies"]["expo"]);
+            if(templateExpoVer && semver.gt(templateExpoVer, "52.0.0")){
                 packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
-            } 
-            if(semver.eq(packageJson["dependencies"]["expo"], "54.0.12")){
-                if(isWebPreview){
-                    packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
-                } else {
-                    packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
-                }
             }
             taskLogger.incrementProgress(2);
         } else {
