@@ -174,7 +174,7 @@ async function transpile(projectDir, previewUrl, incremental) {
             let templatePackageJsonDir = path.resolve(`${process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE}/wavemaker-rn-codegen/src/templates/project/`);
             const packageJson = require(templatePackageJsonFile);
             const templateExpoVer = semver.coerce(packageJson["dependencies"]["expo"]);
-            if(templateExpoVer && semver.gt(templateExpoVer, "52.0.0")){
+            if(templateExpoVer && semver.lt(templateExpoVer, "56.0.0")){
                 packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
             }
             taskLogger.incrementProgress(2);
