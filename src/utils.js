@@ -1,5 +1,8 @@
 const fs = require('fs');
 const os = require('os');
+const http = require('http');
+const https = require('https');
+const { URL } = require('url');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
@@ -32,6 +35,45 @@ function streamToString (stream) {
       stream.on('error', (err) => reject(err));
       stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     })
+}
+
+function pipeRequestToUrl(incomingReq, res, targetUrlString) {
+    let u;
+    try {
+        u = new URL(targetUrlString);
+    } catch (e) {
+        if (!res.headersSent) {
+            res.writeHead(400);
+        }
+        res.end();
+        return;
+    }
+
+    const isHttps = u.protocol === 'https:';
+    const client = isHttps ? https : http;
+    const headers = { ...incomingReq.headers, host: u.host };
+    const port = u.port || (isHttps ? 443 : 80);
+
+    const proxyReq = client.request({
+        protocol: u.protocol,
+        hostname: u.hostname,
+        port,
+        path: u.pathname + u.search,
+        method: incomingReq.method,
+        headers
+    }, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+        proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', () => {
+        if (!res.headersSent) {
+            res.writeHead(502);
+        }
+        res.end();
+    });
+
+    incomingReq.pipe(proxyReq);
 }
 
 async function iterateFiles(path, callBack) {
@@ -69,6 +111,7 @@ module.exports = {
     readAndReplaceFileContent: readAndReplaceFileContent,
     iterateFiles: iterateFiles,
     streamToString: streamToString,
+    pipeRequestToUrl: pipeRequestToUrl,
     isExpoWebPreviewContainer: isExpoWebPreviewContainer, 
     getDestPathForWindows: getDestPathForWindows
 };

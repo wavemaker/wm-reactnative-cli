@@ -1,0 +1,11 @@
+node_modules/
+android/build/
+ios/build/
+.expo/
+dist/
+coverage/
+*.log
+*.apk
+*.ipa
+*.tgz
+wm-projects/
