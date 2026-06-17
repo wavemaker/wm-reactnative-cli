@@ -1,8 +1,8 @@
 import React from 'react';
 import { Platform, View, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { isWebPreviewMode } from '@wavemaker/app-rn-runtime/core/utils';
-import injector from '@wavemaker/app-rn-runtime/core/injector';
+import { isWebPreviewMode } from '@wavemaker-ai/app-rn-runtime/core/utils';
+import injector from '@wavemaker-ai/app-rn-runtime/core/injector';
 import AppDrawerNavigator from './navigator/drawer.navigator';
 import AppStackNavigator from './navigator/stack.navigator';
 import { SafeAreaView } from 'react-native-safe-area-context';

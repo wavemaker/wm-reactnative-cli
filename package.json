@@ -1,10 +1,10 @@
 {
-  "name": "@wavemaker/wm-reactnative-cli",
-  "version": "1.9.8",
+  "name": "@wavemaker-ai/wm-reactnative-cli",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "bin": {
-    "wm-reactnative": "./index.js"
+    "wm-reactnative-ai": "./index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

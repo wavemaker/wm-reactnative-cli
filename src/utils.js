@@ -86,7 +86,12 @@ async function iterateFiles(path, callBack) {
 
 async function isExpoWebPreviewContainer(previewUrl) {
     const response = await axios.get(`${previewUrl}/rn-bundle/index.html`).catch((e) => e.response);
-    return response.data.includes("index.bundle") && response.data.includes("platform=web");
+    return (
+        response &&
+        response.data &&
+        response.data.includes('index.bundle') &&
+        response.data.includes('platform=web')
+    );
 }
 
 async function getDestPathForWindows(mode, projectDir = ''){

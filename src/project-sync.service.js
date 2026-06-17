@@ -6,7 +6,6 @@ const prompt = require('prompt');
 const axios = require('axios');
 const os = require('os');
 const qs = require('qs');
-const semver = require('semver');
 const { exec } = require('./exec');
 const { unzip } = require('./zip');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -17,8 +16,6 @@ const STORE_KEY = 'user.auth.token';
 const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
 const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
-let WM_PLATFORM_VERSION = '';
-let IS_AI_PLATFORM = false;
 
 async function findProjectId(config) {
     const projectList = (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
@@ -28,8 +25,6 @@ async function findProjectId(config) {
     const project = projectList.filter(p => p.displayName === config.projectName)
         .filter(p => (config.appPreviewUrl.endsWith(p.name + "_" + p.vcsBranchId)));
     if (project && project.length) {
-        WM_PLATFORM_VERSION = project[0].platformVersion;
-        IS_AI_PLATFORM = /\.wavemaker\.ai/.test(config.baseUrl);
         return project[0].studioProjectId;
     }
 }
@@ -56,59 +51,41 @@ async function downloadProject(projectId, config, projectDir) {
     taskLogger.start(previewSteps[2].start);
     taskLogger.setTotal(previewSteps[2].total)
     const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
-    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0') && !IS_AI_PLATFORM) {
-        const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitInit`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-         });
+    const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitBare`, {
+        responseType: 'application/json',
+        headers: {
+            cookie: config.authCookie
+        }
+        });
         taskLogger.incrementProgress(2);
-        await downloadFile(res, tempFile);
-        taskLogger.incrementProgress(1);
-        const gitDir = path.join(projectDir, '.git');
-        fs.mkdirpSync(gitDir);
+    if(gitInfo.status !== 200){
+        throw new Error('failed to download the project');
+    }
+    const fileId = gitInfo.data.fileId;
+    remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
+    const res = await axios.get(`${config.baseUrl}/file-service/${fileId}`, {
+        responseType: 'stream',
+        headers: {
+            cookie: config.authCookie
+        }
+    })
+    taskLogger.incrementProgress(2);
+    await downloadFile(res, tempFile);
+    const tempDir = path.join(`${os.tmpdir()}`, `project_${Date.now()}`);
+    fs.mkdirpSync(tempDir);
+    const gitDir = path.join(projectDir, '.git');
+    if(fs.existsSync(gitDir)){
         await unzip(tempFile, gitDir);
+        await exec('git', ['config', '--local', '--unset', 'core.bare'], {cwd: projectDir});
         await exec('git', ['restore', '.'], {cwd: projectDir});
-        taskLogger.incrementProgress(1);
     }
     else{
-        const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitBare`, {
-            responseType: 'application/json',
-            headers: {
-                cookie: config.authCookie
-            }
-         });
-         taskLogger.incrementProgress(2);
-        if(gitInfo.status !== 200){
-            throw new Error('failed to download the project');
-        }
-        const fileId = gitInfo.data.fileId;
-        remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
-        const res = await axios.get(`${config.baseUrl}/file-service/${fileId}`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-        })
-        taskLogger.incrementProgress(2);
-        await downloadFile(res, tempFile);
-        const tempDir = path.join(`${os.tmpdir()}`, `project_${Date.now()}`);
-        fs.mkdirpSync(tempDir);
-        const gitDir = path.join(projectDir, '.git');
-        if(fs.existsSync(gitDir)){
-            await unzip(tempFile, gitDir);
-            await exec('git', ['config', '--local', '--unset', 'core.bare'], {cwd: projectDir});
-            await exec('git', ['restore', '.'], {cwd: projectDir});
-        }
-        else{
-            await unzip(tempFile, tempDir);
-            fs.rmSync(projectDir, { recursive: true, force: true });
-            await exec('git', ['clone', "-b", "master", tempDir, projectDir]);
-        }
-        fs.rmSync(tempDir, { recursive: true, force: true });
-        taskLogger.incrementProgress(1);
+        await unzip(tempFile, tempDir);
+        fs.rmSync(projectDir, { recursive: true, force: true });
+        await exec('git', ['clone', "-b", "master", tempDir, projectDir]);
     }
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    taskLogger.incrementProgress(1);
     logger.info({
         label: loggerLabel,
         message: `downloaded the project in (${Date.now() - start} ms).`
@@ -159,49 +136,28 @@ async function pullChanges(projectId, config, projectDir) {
     logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
     taskLogger.start('pulling new changes from studio...');
     const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
-    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0') && !IS_AI_PLATFORM) {
-        const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
-        console.log(tempFile);
-        const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/remoteChanges?headCommitId=${headCommitId}`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-        });
-        await downloadFile(res, tempFile);
-        fs.mkdirpSync(tempDir);
-        await unzip(tempFile, tempDir);
-    
-        await gitResetAndPull(tempDir, projectDir);
-        await exec('git', ['apply', '--allow-empty', '--ignore-space-change', path.join(tempDir, 'patchFile.patch')], {cwd: projectDir});
-        logger.debug({label: loggerLabel, message: 'Copying any uncommitted binary files'});
-        copyContentsRecursiveSync(path.join(tempDir, 'binaryFiles'), projectDir);    
-        fs.unlink(tempFile);
-    }
-    else{
-        const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {
-            responseType: 'application/json',
-            headers: {
-                cookie: config.authCookie
-            }
-        });
-        if (gitInfo.status !== 200) {
-            throw new Error('failed to pull project changes');
+    const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {
+        responseType: 'application/json',
+        headers: {
+            cookie: config.authCookie
         }
-        const fileId = gitInfo.data.fileId;
-        remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
-        const res = await axios.get(`${config.baseUrl}/file-service/${fileId}`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-        })
-        fs.mkdirpSync(tempDir);
-        const tempFile = `${tempDir}/remoteChanges.bundle`;
-        await downloadFile(res, tempFile);
-        await gitResetAndPull(tempDir, projectDir);
-        fs.unlink(tempFile);
+    });
+    if (gitInfo.status !== 200) {
+        throw new Error('failed to pull project changes');
     }
+    const fileId = gitInfo.data.fileId;
+    remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
+    const res = await axios.get(`${config.baseUrl}/file-service/${fileId}`, {
+        responseType: 'stream',
+        headers: {
+            cookie: config.authCookie
+        }
+    })
+    fs.mkdirpSync(tempDir);
+    const tempFile = `${tempDir}/remoteChanges.bundle`;
+    await downloadFile(res, tempFile);
+    await gitResetAndPull(tempDir, projectDir);
+    fs.unlink(tempFile);
     fs.rmSync(tempDir, { recursive: true, force: true });
     taskLogger.succeed(`pulled new changes from studio - head commit id ${headCommitId}`);
     let filesChanged = await exec('git', ['diff','--name-status', 'HEAD~1', 'HEAD'], {cwd: projectDir});

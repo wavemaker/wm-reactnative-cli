@@ -230,7 +230,7 @@ const applyPatchIfAvailable = (sourceDir, appTarget, targetPlatform) => {
     let isPatchAvailable = false; 
     if (targetPlatform === 'default' && fs.existsSync(`${appTarget}/package.json`)) {
         const package = require(`${appTarget}/package.json`);
-        const rnCodgenPath = package["devDependencies"] && package["devDependencies"]["@wavemaker/rn-codegen"];
+        const rnCodgenPath = package["devDependencies"] && package["devDependencies"]["@wavemaker-ai/rn-codegen"];
         if (rnCodgenPath && rnCodgenPath.startsWith('file:')) {
             isPatchAvailable = true;
         }
@@ -240,7 +240,7 @@ const applyPatchIfAvailable = (sourceDir, appTarget, targetPlatform) => {
     }
     executeSyncCmd('cd ' + appTarget + ' && npm install');
     console.log(' Patch installed');
-    executeSyncCmd(['cd ' + appTarget + ' && node  ' + appTarget + '/node_modules/@wavemaker/rn-codegen/index.js',
+    executeSyncCmd(['cd ' + appTarget + ' && node  ' + appTarget + '/node_modules/@wavemaker-ai/rn-codegen/index.js',
         'transpile',
         (args.nodeVMArgs || ''),
         '--profile="' + targetPlatform + '"',

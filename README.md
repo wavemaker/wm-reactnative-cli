@@ -7,7 +7,7 @@ The main goal of wm-reactnative-cli is to simplify generation of APK or IPA for 
 ### Command to Install
 
 ~~~
-npm install -g @wavemaker/wm-reactnative-cli
+npm install -g @wavemaker-ai/wm-reactnative-cli
 ~~~
 
 ### Adding Environment Variable
@@ -67,7 +67,7 @@ export GRADLE_HOME="$HOME/gradle/gradle-8.2.1"
 
 ### Command
 
-wm-reactnative build android <src_dir> [additional_arguments]
+wm-reactnative-ai build android <src_dir> [additional_arguments]
 
 
 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
@@ -86,11 +86,11 @@ wm-reactnative build android <src_dir> [additional_arguments]
 ### Example 1
 
 ~~~
-wm-reactnative build android "/path/to/src"
+wm-reactnative-ai build android "/path/to/src"
 ~~~
 ### Example 2
 ~~~
-wm-reactnative build android "/path/to/src" \
+wm-reactnative-ai build android "/path/to/src" \
 --dest="/path/to/dest" \
 --aKeyStore="/path/to/file.keystore" \
 --aStorePassword="store_password" \
@@ -112,7 +112,7 @@ wm-reactnative build android "/path/to/src" \
 -   Yarn (npm install -g yarn)
 -   Apple developer or distribution P12 certificates
 -   Provisioning profile
--   Install wm-reactnative-cli (npm install -g @wavemaker/wm-reactnative-cli)
+-   Install wm-reactnative-cli (npm install -g @wavemaker-ai/wm-reactnative-cli)
 -   For development build, development certificate and development provisioning file are required.
 -   For production build, distribution certificate and distribution provisioning file are required.
 -   Use Libre SSL (brew install libressl). Make sure openssl (openssl version) should use Libre ssl.
@@ -121,7 +121,7 @@ wm-reactnative build android "/path/to/src" \
 
 ### Command
 
-wm-reactnative build ios <src_dir> [additional_arguments]
+wm-reactnative-ai build ios <src_dir> [additional_arguments]
 
 
 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
@@ -139,7 +139,7 @@ wm-reactnative build ios <src_dir> [additional_arguments]
 
 
 ~~~
-wm-reactnative build ios "/path/to/src" \
+wm-reactnative-ai build ios "/path/to/src" \
 --iCertificate="/path/to/distribution.p12" \
 --iCertificatePassword="unlock_password" \
 --iProvisioningFile="/path/to/profile.mobileprovision" \
@@ -158,7 +158,7 @@ wm-reactnative build ios "/path/to/src" \
 
 ### Command
 
-wm-reactnative run web-preview <preview_url> [additional_arguments]
+wm-reactnative-ai run web-preview <preview_url> [additional_arguments]
 
 **_NOTE:_** The preview uses the Expo Metro bundler by default.
 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
@@ -178,7 +178,7 @@ wm-reactnative run web-preview <preview_url> [additional_arguments]
 
 ### Command
 
-wm-reactnative sync <preview_url> [additional_arguments]
+wm-reactnative-ai sync <preview_url> [additional_arguments]
 
 |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Argument**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| **Description** |
 |--|--|

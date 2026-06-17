@@ -27,7 +27,7 @@ function getFileSize(path) {
     return (stats && stats['size']) || 0;
 }
 
- async function build(args) {
+async function build(args) {
     const directories = await setupBuildDirectory(args.src, args.dest, args.platform);
     if (!directories) {
         return {
@@ -67,6 +67,7 @@ function getFileSize(path) {
             process.exit();
         }
     }
+
     let response;
     if (args.dest) {
         if (!config.metaData.ejected) {
@@ -325,7 +326,7 @@ async function ejectProject(args) {
         });
         if (args.localrnruntimepath) {
             const linkFolderPath =
-            config.src + 'node_modules/@wavemaker/app-rn-runtime';
+            config.src + `node_modules/@wavemaker-ai/app-rn-runtime`;
             // using removeSync when target is directory and unlinkSync works when target is file.
             if (fs.existsSync(linkFolderPath)) {
                 fs.removeSync(linkFolderPath);
