@@ -141,6 +141,13 @@ async function gitResetAndPull(tempDir, projectDir){
     await exec('git', ['clean', '-fd', '-e', 'output'], {cwd: projectDir});
     await exec('git', ['fetch', path.join(tempDir, 'remoteChanges.bundle'), 'refs/heads/master'], {cwd: projectDir});
     await exec('git', ['reset', '--hard', 'FETCH_HEAD'], {cwd: projectDir});
+
+    const packageLockPath = path.join(projectDir, 'src', 'main', 'webapp','extensions', 'components','package-lock.json');
+
+    if (fs.existsSync(packageLockPath)) {
+        fs.removeSync(packageLockPath);
+        console.log('[gitResetAndPull] Deleted stale package-lock.json at ' + packageLockPath);
+    }
 }
 
 async function pullChanges(projectId, config, projectDir) {

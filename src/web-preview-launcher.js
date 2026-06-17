@@ -372,7 +372,7 @@ async function installDependencies(projectDir) {
             label: loggerLabel,
             message: e+' Encountered an error while installing dependencies.'
           });
-        taskLogger.error(e+' Encountered an error while installing dependencies.');
+        taskLogger.fail(e+' Encountered an error while installing dependencies.');
     }
 }
 
