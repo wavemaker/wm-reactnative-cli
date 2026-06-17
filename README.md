@@ -37,7 +37,7 @@ export WM_REACTNATIVE_CLI="$HOME/cli/"
 ### Requirements
 
 -   Linux or MAC or Windows
--   Node 22.11.0 ([https://nodejs.org/en/blog/release/v14.15.1/](https://nodejs.org/en/download/))
+-   Node 22.18.0 ([https://nodejs.org/en/blog/release/v14.15.1/](https://nodejs.org/en/download/))
 -   GIT ([https://git-scm.com/download](https://git-scm.com/download))
 -   Java 17 ([https://openjdk.org/install/](https://openjdk.org/install/))
 -   Yarn (npm install -g yarn)
@@ -107,7 +107,7 @@ wm-reactnative-ai build android "/path/to/src" \
 -   MAC machine
 -   Latest XCODE
 -   CocoaPods ([https://guides.cocoapods.org/using/getting-started.html#toc_3](https://guides.cocoapods.org/using/getting-started.html#toc_3))
--   Node 22.11.0 ([https://nodejs.org/en/blog/release/v12.22.0/](https://nodejs.org/en/download/))
+-   Node 22.18.0 ([https://nodejs.org/en/blog/release/v12.22.0/](https://nodejs.org/en/download/))
 -   GIT ([https://git-scm.com/download/mac](https://git-scm.com/download/mac))
 -   Yarn (npm install -g yarn)
 -   Apple developer or distribution P12 certificates
@@ -150,7 +150,7 @@ wm-reactnative-ai build ios "/path/to/src" \
 ## Run web-preview
 
 ### Requirements
-- Node 22.11.0 
+- Node 22.18.0 
 - GIT ([https://git-scm.com/download](https://git-scm.com/download))
 - npm 10.9.x
 - Yarn (npm install -g yarn)
@@ -170,7 +170,7 @@ wm-reactnative-ai run web-preview <preview_url> [additional_arguments]
 ## Sync
 
 ### Requirements
-- Node 22.11.0
+- Node 22.18.0
 - GIT ([https://git-scm.com/download](https://git-scm.com/download))
 - npm 10.9.x
 - Yarn (npm install -g yarn)

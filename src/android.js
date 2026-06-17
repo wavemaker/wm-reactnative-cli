@@ -173,6 +173,13 @@ async function updateAndroidBuildGradleFile(type) {
     const buildGradlePath = config.src + 'android/app/build.gradle';
     if (fs.existsSync(buildGradlePath)) {
         let content = fs.readFileSync(buildGradlePath, 'utf8');
+        const hasLegacyExtReact = content.indexOf('project.ext.react') >= 0;
+        if (!hasLegacyExtReact) {
+            if (type !== 'release') {
+                await createJSBundle();
+            }
+            return;
+        }
         if (type === 'release') {
             if (content.search(`entryFile: "index.js"`) === -1) {
                 content = content.replace(/^(?!\s)project\.ext\.react = \[/gm, `project.ext.react = [
@@ -185,7 +192,7 @@ async function updateAndroidBuildGradleFile(type) {
                     .replace(/bundleInRelease\: false/gm, `bundleInRelease: true`);
             }
         } else {
-            if (content.search(`entryFile: "index.js"`) === -1 && content.search('project.ext.react =') >= 0) {
+            if (content.search(`entryFile: "index.js"`) === -1) {
                 content = content.replace(/^(?!\s)project\.ext\.react = \[/gm, `project.ext.react = [
         entryFile: "index.js",
         bundleAssetName: "index.android.bundle",
