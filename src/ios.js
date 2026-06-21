@@ -361,6 +361,7 @@ function findFile(path, nameregex) {
 
 async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVELOPMENT_TEAM) {
     try {
+        taskLogger.enableProgressBar();
         taskLogger.start(androidBuildSteps[4].start);
         taskLogger.setTotal(androidBuildSteps[4].total);
         let xcworkspacePath = findFile(config.src + 'ios', /\.xcworkspace?/) || findFile(config.src + 'ios', /\.xcodeproj?/);

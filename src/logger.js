@@ -24,12 +24,29 @@ const consoleFormat = printf(({
     return `${timestamp} [${label}] [${level}]: ${message}`;
 });
 
+const fileFormat = printf(({
+    level,
+    message,
+    label,
+    timestamp
+}) => {
+    // Skip decoration messages from exec commands in log files
+    if (label === 'exec' && message.includes('╔════════════════════════════════════╗')) {
+        return false; // Don't log this message to file
+    }
+    return `${timestamp} [${label}] [${level}]: ${message}`;
+});
+
 const jsonFormat = printf(({
     level,
     message,
     label,
     timestamp
 }) => {
+    // Skip decoration messages from exec commands in JSON log files
+    if (label === 'exec' && message.includes('╔════════════════════════════════════╗')) {
+        return false; // Don't log this message to file
+    }
     return JSON.stringify({
         timestamp,
         label,
@@ -76,7 +93,7 @@ logger.setLogDirectory = (path) => {
                 },
                 format: combine(
                     timestamp(),
-                    consoleFormat
+                    fileFormat
                 )
             }),
             new(transports.File)({
@@ -94,7 +111,7 @@ logger.setLogDirectory = (path) => {
                 level: 'error',
                 format: combine(
                     timestamp(),
-                    consoleFormat
+                    fileFormat
                 ),
             })
         ]

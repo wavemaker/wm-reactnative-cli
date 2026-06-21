@@ -237,6 +237,7 @@ async function extractRNZip(src)  {
 
 async function setupBuildDirectory(src, dest, platform) {
     try{
+        taskLogger.enableProgressBar();
         taskLogger.setTotal(androidBuildSteps[0].total);
         taskLogger.start(androidBuildSteps[0].start);
         src = await extractRNZip(src);
@@ -287,6 +288,7 @@ async function setupBuildDirectory(src, dest, platform) {
         });
         global.logDirectory = logDirectory;
         logger.setLogDirectory(logDirectory);
+        taskLogger.incrementProgress(1); // Complete the final step
         taskLogger.info("Full log details can be found in: " + logDirectory);
         return {
             src: src,
@@ -357,6 +359,7 @@ async function writeWmRNConfig(content) {
 // src points to unzip proj
 async function ejectProject(args) {
     try {
+        taskLogger.enableProgressBar();
         taskLogger.start(androidBuildSteps[3].start);
         taskLogger.setTotal(androidBuildSteps[3].total);
         taskLogger.incrementProgress(1);
@@ -402,6 +405,7 @@ async function ejectProject(args) {
 
 async function prepareProject(args) {
     try {
+        taskLogger.enableProgressBar();
         taskLogger.setTotal(androidBuildSteps[1].total);
         taskLogger.start(androidBuildSteps[1].start);
         config.src = args.dest;
@@ -440,6 +444,7 @@ async function prepareProject(args) {
         }
         taskLogger.incrementProgress(1);
         taskLogger.succeed(androidBuildSteps[1].succeed);
+        taskLogger.enableProgressBar();
         taskLogger.setTotal(androidBuildSteps[2].total);
         taskLogger.start(androidBuildSteps[2].start);
         logger.info({
