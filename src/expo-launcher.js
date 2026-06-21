@@ -10,7 +10,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows } = require('./utils');
+const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, cleanNpmCache } = require('./utils');
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion} = require('./requirements');
 const axios = require('axios');
@@ -336,6 +336,9 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.resetProgressBar();
     taskLogger.setTotal(previewSteps[1].total)
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
+    if (_clean) {
+        await cleanNpmCache(projectDir);
+    }
     await transpile(projectDir, previewUrl, false);
     return {projectDir, syncProject};
 }

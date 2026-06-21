@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const loggerLabel = 'wm-reactnative-cli';
-
+const { exec } = require('./exec');
 
 function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
@@ -64,11 +64,26 @@ async function getDestPathForWindows(mode, projectDir = ''){
     return  destPath;
 }
 
+async function cleanNpmCache(cwd) {
+    try {
+        taskLogger.start('Cleaning npm cache...');
+        await exec('npm', ['cache', 'clean', '--force'], { cwd });
+        taskLogger.succeed('Npm cache cleaned successfully');
+    } catch (e) {
+        logger.error({
+            label: loggerLabel,
+            message: `Npm cache clean failed: ${e}`
+        });
+        taskLogger.fail('Npm cache clean failed');
+    }
+}
+
 module.exports = {
     isWindowsOS: isWindowsOS,
     readAndReplaceFileContent: readAndReplaceFileContent,
     iterateFiles: iterateFiles,
     streamToString: streamToString,
     isExpoWebPreviewContainer: isExpoWebPreviewContainer, 
-    getDestPathForWindows: getDestPathForWindows
+    getDestPathForWindows: getDestPathForWindows,
+    cleanNpmCache: cleanNpmCache
 };

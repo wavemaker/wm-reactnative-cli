@@ -12,7 +12,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, streamToString, isExpoWebPreviewContainer } = require('./utils');
+const { readAndReplaceFileContent, streamToString, isExpoWebPreviewContainer, cleanNpmCache } = require('./utils');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -382,6 +382,9 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.incrementProgress(1);
     taskLogger.succeed(previewSteps[0].succeed);
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
+    if (_clean) {
+        await cleanNpmCache(projectDir);
+    }
     taskLogger.start(previewSteps[3].start);
     taskLogger.setTotal(previewSteps[3].total);
     await transpile(projectDir, previewUrl, false);
