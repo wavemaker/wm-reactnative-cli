@@ -9,7 +9,8 @@ const {
     runExpo, runAndroid, runIos, sync, runESBuildWebPreview
 } = require('./src/expo-launcher');
 const { runWeb } = require('./src/web-preview-launcher');
-const updateNotifier = require('update-notifier');
+const updateNotifierModule = require('update-notifier');
+const updateNotifier = updateNotifierModule.default || updateNotifierModule;
 const pkg = require('./package.json');
 const { canDoAndroidBuild, canDoIosBuild, showConfirmation } = require('./src/requirements');
 updateNotifier({
@@ -27,6 +28,8 @@ const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
 // src is the web react native project zip
+
+console.log('=== local cli running ===')
 
 async function handleDeprecatedCommands(args) {
     const syncCommand = `wm-reactnative sync ${args.previewUrl} ${args.clean ? '--clean' : ''} ${args.useProxy ? '--useProxy' : ''}`;
