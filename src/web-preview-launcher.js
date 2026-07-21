@@ -2,6 +2,7 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
+const net = require('net');
 const os = require('os');
 const rimraf = require("rimraf");
 const semver = require('semver');
@@ -61,6 +62,12 @@ function launchServiceProxy(projectDir, previewUrl) {
                 axios.get(tUrl).then(body => {
                     res.end(body.data
                         .replace('/index.bundle?', `./index.bundle?minify=true&`));
+                }).catch((err) => {
+                    console.error(err);
+                    if (!res.headersSent) {
+                        res.writeHead(502);
+                    }
+                    res.end();
                 });
                 return;
             }
@@ -235,6 +242,21 @@ async function updateForWebPreview(projectDir) {
         delete package.devDependencies['@expo/metro-config'];
         fs.copySync(`${codegen}/src/templates/project/esbuild`, `${getExpoProjectDir(projectDir)}/esbuild`);
     }
+    // npm 10+ rejects a root override that conflicts with a direct dependency's pinned
+    // version (EOVERRIDE). Project-specific plugin deps can pin a package (e.g. lodash)
+    // to a different exact version than the template's security-fix override, so make
+    // the direct dependency match the override rather than fail the install.
+    if (package.overrides) {
+        ['dependencies', 'devDependencies'].forEach((depKey) => {
+            if (!package[depKey]) return;
+            Object.keys(package.overrides).forEach((name) => {
+                const overrideVersion = package.overrides[name];
+                if (typeof overrideVersion === 'string' && package[depKey][name] && package[depKey][name] !== overrideVersion) {
+                    package[depKey][name] = overrideVersion;
+                }
+            });
+        });
+    }
     fs.writeFileSync(packageFile, JSON.stringify(package, null, 4));
     await readAndReplaceFileContent(`${getExpoProjectDir(projectDir)}/esbuild/esbuild.script.js`, (content)=>{
         return content.replace('const esbuild', '//const esbuild').replace('const resolve', '//const resolve');
@@ -374,6 +396,27 @@ async function installDependencies(projectDir) {
           });
         taskLogger.fail(e+' Encountered an error while installing dependencies.');
     }
+}
+
+function waitForPort(port, { timeoutMs = 60000, intervalMs = 300 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    return new Promise((resolve, reject) => {
+        const tryConnect = () => {
+            const socket = net.createConnection({ port, host: 'localhost' }, () => {
+                socket.end();
+                resolve();
+            });
+            socket.on('error', () => {
+                socket.destroy();
+                if (Date.now() >= deadline) {
+                    reject(new Error(`Timed out waiting for port ${port} to accept connections`));
+                } else {
+                    setTimeout(tryConnect, intervalMs);
+                }
+            });
+        };
+        tryConnect();
+    });
 }
 
 function clean(path) {
@@ -524,12 +567,21 @@ async function runWeb(previewUrl, clean, authToken) {
                 return transpile(projectDir, previewUrl, true).then(() => {
                     if (!isExpoStarted) {
                         isExpoStarted = true;
-                        launchServiceProxy(projectDir, previewUrl);
-                        return new Promise((resolve) => {
-                            exec('npx', ['expo', 'start', '--web', '--offline', `--port=${webPreviewPort}`], {
-                                cwd: getExpoProjectDir(projectDir)
+                        exec('npx', ['expo', 'start', '--web', '--offline', `--port=${webPreviewPort}`], {
+                            cwd: getExpoProjectDir(projectDir)
+                        }).catch((code) => {
+                            logger.error({
+                                label: loggerLabel,
+                                message: `Expo web server exited unexpectedly with code ${code}.`
                             });
-                            resolve();
+                        });
+                        return waitForPort(webPreviewPort).catch((err) => {
+                            logger.error({
+                                label: loggerLabel,
+                                message: `Timed out waiting for Expo web server on port ${webPreviewPort}: ${err.message}`
+                            });
+                        }).then(() => {
+                            launchServiceProxy(projectDir, previewUrl);
                         });
                     }
                 }).then(() => {
