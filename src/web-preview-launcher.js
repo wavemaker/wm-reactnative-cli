@@ -242,21 +242,6 @@ async function updateForWebPreview(projectDir) {
         delete package.devDependencies['@expo/metro-config'];
         fs.copySync(`${codegen}/src/templates/project/esbuild`, `${getExpoProjectDir(projectDir)}/esbuild`);
     }
-    // npm 10+ rejects a root override that conflicts with a direct dependency's pinned
-    // version (EOVERRIDE). Project-specific plugin deps can pin a package (e.g. lodash)
-    // to a different exact version than the template's security-fix override, so make
-    // the direct dependency match the override rather than fail the install.
-    if (package.overrides) {
-        ['dependencies', 'devDependencies'].forEach((depKey) => {
-            if (!package[depKey]) return;
-            Object.keys(package.overrides).forEach((name) => {
-                const overrideVersion = package.overrides[name];
-                if (typeof overrideVersion === 'string' && package[depKey][name] && package[depKey][name] !== overrideVersion) {
-                    package[depKey][name] = overrideVersion;
-                }
-            });
-        });
-    }
     fs.writeFileSync(packageFile, JSON.stringify(package, null, 4));
     await readAndReplaceFileContent(`${getExpoProjectDir(projectDir)}/esbuild/esbuild.script.js`, (content)=>{
         return content.replace('const esbuild', '//const esbuild').replace('const resolve', '//const resolve');
@@ -337,17 +322,29 @@ async function installDependencies(projectDir) {
         overwrite: true
         });
     const nodeModulesDir = `${expoDir}/node_modules/@wavemaker-ai/app-rn-runtime`;
-    const coercedExpo = semver.coerce(expoVersion);
-    const isPreSdk54 = coercedExpo && semver.lt(coercedExpo, "54.0.0");
-    const isPreSdk56 = coercedExpo && semver.lt(coercedExpo, "56.0.0");
-    if(isPreSdk54){
-        readAndReplaceFileContent(`${expoDir}/node_modules/open/index.js`, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
-        readAndReplaceFileContent(`${expoDir}/node_modules/@expo/cli/build/src/utils/open.js`, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
-        readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+    if(expoVersion != '54.0.12'){
+        const openModule = path.join(expoDir, 'node_modules', 'open', 'index.js');
+        if (fs.existsSync(openModule)) {
+            await readAndReplaceFileContent(openModule, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
+        }
+        const expoCliOpen = resolveExpoCliOpenJs(expoDir);
+        if (expoCliOpen) {
+            await readAndReplaceFileContent(expoCliOpen, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/core/base.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/input/rating/rating.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
     }
-    if(isPreSdk54){
+    if(expoVersion != '52.0.17' && expoVersion != '54.0.12'){
+        if(!fs.existsSync(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`)){
+            return null;
+        }
         readAndReplaceFileContent(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`, (c) => {
             if (c.indexOf('@koale/useworker') > 0) {
                 return fs.readFileSync(`${__dirname}/../templates/expo-camera-patch/useWebQRScanner.js`, {
@@ -355,15 +352,15 @@ async function installDependencies(projectDir) {
                 })
             }
             return c;
-        });    
+        });
     }
     await readAndReplaceFileContent(`${expoDir}/node_modules/expo-font/build/ExpoFontLoader.web.js`, (content)=>{
-        if(isPreSdk54){
+        if(expoVersion == '52.0.17'){
             return content.replace(/src\s*:\s*url\(\$\{resource\.uri\}\);/g, 'src:url(.${resource.uri.replace("//rn-bundle//","/")});');
         }
-        if(isPreSdk56){
+        if(expoVersion == '54.0.12'){
             content = content.replace(
-                /src:url\("(\$\{resource\.uri\})"\)/g, 
+                /src:url\("(\$\{resource\.uri\})"\)/g,
                 'src:url("${resource.uri.replace(\'//rn-bundle//\',\'/\')}")'
             );
             content = content.replace(
