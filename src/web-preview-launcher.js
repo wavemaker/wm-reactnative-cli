@@ -2,7 +2,6 @@ const logger = require('./logger');
 const fs = require('fs-extra');
 const express = require('express');
 const http = require('http');
-const request = require('request');
 const os = require('os');
 const rimraf = require("rimraf");
 const semver = require('semver');
@@ -12,7 +11,8 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, streamToString, isExpoWebPreviewContainer } = require('./utils');
+const { readAndReplaceFileContent, isExpoWebPreviewContainer, pipeRequestToUrl } = require('./utils');
+const { EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION } = require('./requirements');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -22,6 +22,23 @@ let webPreviewPort = 19006;
 const proxyPort = 19009;
 let proxyUrl = `http://localhost:${proxyPort}`;
 const loggerLabel = 'expo-launcher';
+
+function resolveExpoCliOpenJs(expoDir) {
+    const candidates = [
+        path.join(expoDir, 'node_modules', '@expo', 'cli', 'build', 'src', 'utils', 'open.js'),
+        path.join(expoDir, 'node_modules', 'expo', 'node_modules', '@expo', 'cli', 'build', 'src', 'utils', 'open.js'),
+    ];
+    const found = candidates.find((p) => fs.existsSync(p));
+    if (found) {
+        return found;
+    }
+    try {
+        return require.resolve('@expo/cli/build/src/utils/open.js', { paths: [expoDir] });
+    } catch (_) {
+        return null;
+    }
+}
+
 let codegen = '';
 let rnAppPath = '';
 let packageLockJsonFile = '';
@@ -76,15 +93,21 @@ function launchServiceProxy(projectDir, previewUrl) {
                 }
                 res.setHeader('Content-Location', url);
                 if (url.indexOf('/index.bundle') > 0) {
-                    streamToString(request(tUrl)).then(content => {
-                        content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
-                        res.write(content);
-                        res.end();
-                    });
+                    axios.get(tUrl, { responseType: 'text' })
+                        .then(({ data: content }) => {
+                            content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
+                            res.write(content);
+                            res.end();
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            if (!res.headersSent) {
+                                res.writeHead(502);
+                            }
+                            res.end();
+                        });
                 } else {
-                    req.pipe(request(tUrl, function(error, res, body){
-                        //error && console.log(error);
-                    })).pipe(res);
+                    pipeRequestToUrl(req, res, tUrl);
                 }
             } 
         } catch(e) {
@@ -202,7 +225,10 @@ async function updateForWebPreview(projectDir) {
             content.replace(`'react-native-reanimated/plugin',`, ''));
     } else {
         expoVersion = package['dependencies']['expo'];
-        package.dependencies['react-native-svg'] = '13.4.0';
+        const coercedVer = semver.coerce(expoVersion);
+        if(coercedVer && semver.lt(coercedVer, EXPO_SDK_56)){
+            package.dependencies['react-native-svg'] = '13.4.0';
+        }
         package.dependencies['victory'] = '^36.5.3';
         package.devDependencies['fs-extra'] = '^10.0.0';
         delete package.devDependencies['esbuild'];
@@ -230,10 +256,8 @@ async function getCodeGenPath(projectDir) {
         let templatePackageJsonDir = path.resolve(`${process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE}/wavemaker-rn-codegen/src/templates/project/`);
         const packageJson = require(templatePackageJsonFile);
         const expoProjectDir = getExpoProjectDir(projectDir);
-        if(semver.eq(packageJson["dependencies"]["expo"], "52.0.17")){
-            packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
-        }
-        if(semver.eq(packageJson["dependencies"]["expo"], "54.0.8")){
+        const templateExpoVer = semver.coerce(packageJson["dependencies"]["expo"]);
+        if(templateExpoVer && semver.lt(templateExpoVer, EXPO_SDK_56)){
             packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
         }
     } else {
@@ -290,14 +314,28 @@ async function installDependencies(projectDir) {
         });
     const nodeModulesDir = `${expoDir}/node_modules/@wavemaker-ai/app-rn-runtime`;
     if(expoVersion != '54.0.12'){
-        // To remove openBrowser()
-        readAndReplaceFileContent(`${expoDir}/node_modules/open/index.js`, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
-        readAndReplaceFileContent(`${expoDir}/node_modules/@expo/cli/build/src/utils/open.js`, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
-        readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
-        readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        const openModule = path.join(expoDir, 'node_modules', 'open', 'index.js');
+        if (fs.existsSync(openModule)) {
+            await readAndReplaceFileContent(openModule, (c) => c.replace("const subprocess", 'return;\n\nconst subprocess'));
+        }
+        const expoCliOpen = resolveExpoCliOpenJs(expoDir);
+        if (expoCliOpen) {
+            await readAndReplaceFileContent(expoCliOpen, (c) => c.replace('if (process.platform !== "win32")', 'return;\n\n if (process.platform !== "win32")'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/core/base.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/core/base.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/advanced/carousel/carousel.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
+        if (fs.existsSync(`${nodeModulesDir}/components/input/rating/rating.component.js`)) {
+            await readAndReplaceFileContent(`${nodeModulesDir}/components/input/rating/rating.component.js`, (c) => c.replace(/\?\?/g, '||'));
+        }
     }
     if(expoVersion != '52.0.17' && expoVersion != '54.0.12'){
+        if(!fs.existsSync(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`)){
+            return null;
+        }
         readAndReplaceFileContent(`${expoDir}/node_modules/expo-camera/build/useWebQRScanner.js`, (c) => {
             if (c.indexOf('@koale/useworker') > 0) {
                 return fs.readFileSync(`${__dirname}/../templates/expo-camera-patch/useWebQRScanner.js`, {
@@ -305,7 +343,7 @@ async function installDependencies(projectDir) {
                 })
             }
             return c;
-        });    
+        });
     }
     await readAndReplaceFileContent(`${expoDir}/node_modules/expo-font/build/ExpoFontLoader.web.js`, (content)=>{
         if(expoVersion == '52.0.17'){
@@ -313,7 +351,7 @@ async function installDependencies(projectDir) {
         }
         if(expoVersion == '54.0.12'){
             content = content.replace(
-                /src:url\("(\$\{resource\.uri\})"\)/g, 
+                /src:url\("(\$\{resource\.uri\})"\)/g,
                 'src:url("${resource.uri.replace(\'//rn-bundle//\',\'/\')}")'
             );
             content = content.replace(
@@ -321,20 +359,23 @@ async function installDependencies(projectDir) {
                 'const toExport = ExpoFontLoader;'
             );
         }
+        // SDK 56+: expo-font uses JSON.stringify(resource.uri) in @font-face src
+        content = content.replace(
+            /src:url\(\$\{JSON\.stringify\(resource\.uri\)\}\)/g,
+            'src:url(${JSON.stringify(resource.uri.replace("//rn-bundle//","/"))})'
+        );
+        // Fallback for older patterns
         return content.replace(/src\s*:\s*url\(\$\{resource\.uri\}\);/g, 'src:url(.${resource.uri});');
     });
     // https://github.com/expo/expo/issues/24273#issuecomment-2132297993
-    const envPluginPath = `${expoDir}/node_modules/expo/node_modules/@expo/metro-config/build/serializer/environmentVariableSerializerPlugin.js`;
-    if (fs.existsSync(envPluginPath)) {
-        await readAndReplaceFileContent(envPluginPath, (content)=>{
+    // @expo/metro-config was replaced by @expo/metro in SDK 56+
+    const envSerializerPath = `${expoDir}/node_modules/@expo/metro-config/build/serializer/environmentVariableSerializerPlugin.js`;
+    if (fs.existsSync(envSerializerPath)) {
+        await readAndReplaceFileContent(envSerializerPath, (content)=>{
             content = content.replace('getEnvPrelude(str)', '//getEnvPrelude(str)');
             return content.replace('// process.env', '// process.env \n firstModule.output[0].data.code = firstModule.output[0].data.code + str;');
         });
-        console.log("Environment variable serializer plugin found and patched successfully");
-    }else{
-        console.log("Environment variable serializer plugin not found and not patched");
     }
-
     taskLogger.succeed(previewSteps[4].succeed);
     } catch (e) {
         logger.error({

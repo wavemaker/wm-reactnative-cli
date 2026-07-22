@@ -52,7 +52,7 @@ async function downloadProject(projectId, config, projectDir) {
     taskLogger.setTotal(previewSteps[2].total)
     const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
     const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/gitBare`, {
-        responseType: 'application/json',
+        responseType: 'json',
         headers: {
             cookie: config.authCookie
         }
@@ -137,7 +137,7 @@ async function pullChanges(projectId, config, projectDir) {
     taskLogger.start('pulling new changes from studio...');
     const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
     const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {
-        responseType: 'application/json',
+        responseType: 'json',
         headers: {
             cookie: config.authCookie
         }

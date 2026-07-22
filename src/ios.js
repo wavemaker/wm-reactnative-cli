@@ -4,6 +4,7 @@ const config = require('./config');
 const plist = require('plist');
 const xcode = require('xcode');
 const path = require('path');
+const semver = require('semver');
 const pparse = require('./mobileprovision-parse');
 const {
     exec
@@ -382,9 +383,9 @@ async function xcodebuild(args, CODE_SIGN_IDENTITY_VAL, PROVISIONING_UUID, DEVEL
         if (args.buildType === 'development' || args.buildType === 'debug') {
             _buildType = 'Debug';
             
-            // Get Expo SDK version from package.json
             const packageJson = JSON.parse(fs.readFileSync(`${config.src}package.json`, 'utf8'));
-            const expoVersion = packageJson.dependencies?.expo ? parseInt(packageJson.dependencies.expo.replace(/[^0-9]/g, '').substring(0, 2)) : 0;
+            const expoCoerced = semver.coerce(packageJson.dependencies?.expo);
+            const expoVersion = expoCoerced ? expoCoerced.major : 0;
             
             if (expoVersion >= 54) {
                 // Expo 54+: Modify bundling script to force bundling with --dev false
