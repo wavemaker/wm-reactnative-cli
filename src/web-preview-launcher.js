@@ -13,6 +13,7 @@ const {
     exec
 } = require('./exec');
 const { readAndReplaceFileContent, isExpoWebPreviewContainer, pipeRequestToUrl } = require('./utils');
+const { EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION } = require('./requirements');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
@@ -232,7 +233,7 @@ async function updateForWebPreview(projectDir) {
     } else {
         expoVersion = package['dependencies']['expo'];
         const coercedVer = semver.coerce(expoVersion);
-        if(coercedVer && semver.lt(coercedVer, "56.0.0")){
+        if(coercedVer && semver.lt(coercedVer, EXPO_SDK_56)){
             package.dependencies['react-native-svg'] = '13.4.0';
         }
         package.dependencies['victory'] = '^36.5.3';
@@ -263,7 +264,7 @@ async function getCodeGenPath(projectDir) {
         const packageJson = require(templatePackageJsonFile);
         const expoProjectDir = getExpoProjectDir(projectDir);
         const templateExpoVer = semver.coerce(packageJson["dependencies"]["expo"]);
-        if(templateExpoVer && semver.lt(templateExpoVer, "56.0.0")){
+        if(templateExpoVer && semver.lt(templateExpoVer, EXPO_SDK_56)){
             packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
         }
     } else {
@@ -282,7 +283,7 @@ async function getCodeGenPath(projectDir) {
                 cwd: temp
             });
             let version = semver.coerce(uiVersion).version;
-            if(semver.gte(version, '11.10.0')){
+            if(semver.gte(version, MIN_RN_APP_SUPPORT_VERSION)){
                 rnAppPath = `${projectDir}/target/codegen/node_modules/@wavemaker/rn-app`;
                 await exec('npm', ['install', '--save-dev', `@wavemaker/rn-app@${uiVersion}`], {
                     cwd: temp
