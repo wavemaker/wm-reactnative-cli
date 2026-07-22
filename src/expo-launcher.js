@@ -11,7 +11,7 @@ const {
 } = require('./exec');
 const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl } = require('./utils');
 const crypto = require('crypto');
-const {VERSIONS, hasValidExpoVersion} = require('./requirements');
+const {VERSIONS, hasValidExpoVersion, EXPO_SDK_54_0_12, EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION} = require('./requirements');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const path = require('path');
@@ -141,8 +141,8 @@ async function updatePackageJsonFile(path) {
     let data = fs.readFileSync(path, 'utf-8');
     const jsonData = JSON.parse(data);
     const expoVer = semver.coerce(jsonData["dependencies"]["expo"]);
-    if(expoVer && semver.gte(expoVer, "54.0.12")){
-        if(isWebPreview && semver.lt(expoVer, "56.0.0")){
+    if(expoVer && semver.gte(expoVer, EXPO_SDK_54_0_12)){
+        if(isWebPreview && semver.lt(expoVer, EXPO_SDK_56)){
             jsonData['dependencies']['react-native-svg'] = '13.4.0';
         }
     }
@@ -174,7 +174,7 @@ async function transpile(projectDir, previewUrl, incremental) {
             let templatePackageJsonDir = path.resolve(`${process.env.WAVEMAKER_STUDIO_FRONTEND_CODEBASE}/wavemaker-rn-codegen/src/templates/project/`);
             const packageJson = require(templatePackageJsonFile);
             const templateExpoVer = semver.coerce(packageJson["dependencies"]["expo"]);
-            if(templateExpoVer && semver.lt(templateExpoVer, "56.0.0")){
+            if(templateExpoVer && semver.lt(templateExpoVer, EXPO_SDK_56)){
                 packageLockJsonFile = path.resolve(`${__dirname}/../templates/package/packageLock.json`);
             }
             taskLogger.incrementProgress(2);

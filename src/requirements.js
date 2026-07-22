@@ -16,6 +16,10 @@ let VERSIONS = {
     'EXPO': '56.0.6',
 }
 
+const EXPO_SDK_54_0_12 = '54.0.12';
+const EXPO_SDK_56 = '56.0.0';
+const MIN_RN_APP_SUPPORT_VERSION = '11.10.0';
+
 // check if expo cli is installed globally or not
 // gradle check
 async function checkAvailability(cmd, transformFn, projectSrc) {
@@ -243,6 +247,9 @@ module.exports = {
     checkForGradleAvailability: checkForGradleAvailability,
     hasValidExpoVersion: hasValidExpoVersion,
     VERSIONS: VERSIONS,
+    EXPO_SDK_54_0_12: EXPO_SDK_54_0_12,
+    EXPO_SDK_56: EXPO_SDK_56,
+    MIN_RN_APP_SUPPORT_VERSION: MIN_RN_APP_SUPPORT_VERSION,
     canDoEmbed: canDoEmbed,
     canDoIosBuild: canDoIosBuild,
     canDoAndroidBuild: canDoAndroidBuild
