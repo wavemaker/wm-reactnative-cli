@@ -27,57 +27,6 @@ function getFileSize(path) {
     return (stats && stats['size']) || 0;
 }
 
-async function updatePackageJsonFile(path) {
-    try {
-        let data = fs.readFileSync(path, 'utf-8');
-        //downgrading expo-av to 11 to address the build failure issue
-        data = data.replace(/"expo-av"[\s]*:[\s]*"~13.0.1"/, '"expo-av": "~11.0.1"');
-        const jsonData = JSON.parse(data);
-        jsonData['main'] = "index";
-        if (config.embed) {
-            jsonData['dependencies']['@wavemaker/expo-native-module'] = "latest";
-        }
-        if(!jsonData['devDependencies']['@babel/plugin-proposal-optional-chaining']){
-            jsonData['devDependencies']['@babel/plugin-proposal-optional-chaining'] = "^7.21.0";
-        }
-        if(!jsonData['devDependencies']['@babel/plugin-proposal-nullish-coalescing-operator']){
-            jsonData['devDependencies']['@babel/plugin-proposal-nullish-coalescing-operator'] = "^7.18.6";
-        }
-        if (!jsonData['dependencies']['lottie-react-native']
-            || jsonData['dependencies']['lottie-react-native'] === '5.1.5') {
-            jsonData['dependencies']['lottie-react-native'] = "^5.1.5";
-            jsonData['dependencies']['react-lottie-player'] = "^1.5.4";
-        }
-        if (jsonData['dependencies']['expo-file-system'] === '^15.1.1') {
-            jsonData['dependencies']['expo-file-system'] = '15.2.2'
-        }
-        if (jsonData['dependencies']['axios'] === '^1.4.0') {
-            jsonData['dependencies']['axios'] = '1.6.8';
-        }
-        const resolutions = jsonData["resolutions"] || {};
-        if (!resolutions['expo-application']) {
-            resolutions['expo-application'] = '5.8.4';
-        }
-        if (!resolutions['axios']) {
-            resolutions['axios'] = '1.6.8';
-        }
-        if (jsonData['dependencies']['expo'] === '50.0.17') {
-            resolutions['metro'] = '0.80.9';
-        }
-        jsonData["resolutions"] = resolutions;
-        if (config.platform === 'android') {
-            jsonData['dependencies']['@react-native-cookies/cookies'] = '6.2.1';
-        }
-        fs.writeFileSync(path, JSON.stringify(jsonData), 'utf-8');
-        logger.info({
-            'label': loggerLabel,
-            'message': 'updated package.json file'
-        });
-    } catch (e) {
-        resolve('error', e);
-    }
-}
-
  async function build(args) {
     const directories = await setupBuildDirectory(args.src, args.dest, args.platform);
     if (!directories) {

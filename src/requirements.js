@@ -9,12 +9,16 @@ const {
 } = require('./exec');
 const loggerLabel = 'rn-cli-requirements';
 let VERSIONS = {
-    'NODE': '14.0.0',
+    'NODE': '22.13.0',
     'POD' : '1.9.0',
-    'JAVA': '11.0.0',
-    'REACT_NATIVE': '0.68.2',
-    'EXPO': '5.4.4',
+    'JAVA': '17.0.0',
+    'REACT_NATIVE': '0.85.3',
+    'EXPO': '56.0.6',
 }
+
+const EXPO_SDK_54_0_12 = '54.0.12';
+const EXPO_SDK_56 = '56.0.0';
+const MIN_RN_APP_SUPPORT_VERSION = '11.10.0';
 
 // check if expo cli is installed globally or not
 // gradle check
@@ -243,6 +247,9 @@ module.exports = {
     checkForGradleAvailability: checkForGradleAvailability,
     hasValidExpoVersion: hasValidExpoVersion,
     VERSIONS: VERSIONS,
+    EXPO_SDK_54_0_12: EXPO_SDK_54_0_12,
+    EXPO_SDK_56: EXPO_SDK_56,
+    MIN_RN_APP_SUPPORT_VERSION: MIN_RN_APP_SUPPORT_VERSION,
     canDoEmbed: canDoEmbed,
     canDoIosBuild: canDoIosBuild,
     canDoAndroidBuild: canDoAndroidBuild
