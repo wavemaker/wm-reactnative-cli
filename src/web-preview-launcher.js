@@ -95,7 +95,7 @@ function launchServiceProxy(projectDir, previewUrl) {
                 if (url.indexOf('/index.bundle') > 0) {
                     axios.get(tUrl, { responseType: 'text' })
                         .then(({ data: content }) => {
-                            content = content.replace(/"\/assets\/\?unstable_path=/g, `"/${basePath}/assets/?unstable_path=`);
+                            content = content.replace(/"\/assets\/\?unstable_path=/g, `"${basePath}assets/?unstable_path=`);
                             res.write(content);
                             res.end();
                         })
