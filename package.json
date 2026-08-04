@@ -42,6 +42,9 @@
     "@types/update-notifier": "^6.0.8"
   },
   "overrides": {
-    "uuid": "14.0.0"
+    "uuid": "14.0.0",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.18"
+    }
   }
 }
