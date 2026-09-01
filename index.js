@@ -9,7 +9,8 @@ const {
     runExpo, runAndroid, runIos, sync, runESBuildWebPreview
 } = require('./src/expo-launcher');
 const { runWeb } = require('./src/web-preview-launcher');
-const updateNotifier = require('update-notifier');
+const updateNotifierModule = require('update-notifier');
+const updateNotifier = updateNotifierModule.default || updateNotifierModule;
 const pkg = require('./package.json');
 const { canDoAndroidBuild, canDoIosBuild, showConfirmation } = require('./src/requirements');
 updateNotifier({
