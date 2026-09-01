@@ -12,8 +12,8 @@ let VERSIONS = {
     'NODE': '22.13.0',
     'POD' : '1.9.0',
     'JAVA': '17.0.0',
-    'REACT_NATIVE': '0.85.3',
-    'EXPO': '56.0.6',
+    'REACT_NATIVE': '0.86.3',
+    'EXPO': '57.0.18',
 }
 
 const EXPO_SDK_54_0_12 = '54.0.12';
