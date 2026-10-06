@@ -36,6 +36,8 @@ var useProxy = false;
 var expoDirectoryHash = "";
 let windowsPreviewDir = "";
 let rnAppPath = "";
+// Overrides set by another web-preview launcher (see metro-web-preview-launcher.js); empty keeps the defaults.
+const hooks = {};
 let etag = "";
 let isExpoPreviewContainer = false;
 
@@ -160,6 +162,9 @@ async function updatePackageJsonFile(path) {
 }
 
 async function transpile(projectDir, previewUrl, incremental) {
+    if (hooks.transpile) {
+        return hooks.transpile(projectDir, previewUrl, incremental);
+    }
     try{
         taskLogger.start(previewSteps[3].start);
         taskLogger.setTotal(previewSteps[3].total);
@@ -249,6 +254,9 @@ async function transpile(projectDir, previewUrl, incremental) {
 }
 
 async function installDependencies(projectDir) {
+    if (hooks.transpile) {
+        return; // the overriding transpile installs dependencies itself
+    }
     await updatePackageJsonFile(getExpoProjectDir(projectDir)+ '/package.json');
     if(!isWebPreview){
         try{
@@ -280,6 +288,9 @@ async function launchExpo(projectDir, web) {
 }
 
 function clean(path) {
+    if (hooks.clean) {
+        return hooks.clean(path);
+    }
     if (fs.existsSync(path)) {
         rimraf.sync(path, {recursive: true});
     }
@@ -455,9 +466,9 @@ async function runExpo(previewUrl, clean, authToken) {
         taskLogger.info(`generated esbuild web app at ${projectDir}`);
         taskLogger.succeed(chalk.green("Esbuild finished ") + chalk.blue(`Service proxy launched at ${localHostUrl}`));
         isExpoPreviewContainer = await isExpoWebPreviewContainer(previewUrl);
-        watchProjectChanges(previewUrl, () => {
+        const onProjectChange = () => {
             const startTime = Date.now();
-            syncProject()
+            return syncProject()
             .then(() => {
                 logger.info({
                     label: loggerLabel,
@@ -473,7 +484,8 @@ async function runExpo(previewUrl, clean, authToken) {
                 });
                 taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
             });
-        });
+        };
+        (hooks.watchProjectChanges || watchProjectChanges)(previewUrl, onProjectChange);
         watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
     } catch(e) {
         logger.error({
@@ -580,6 +592,9 @@ module.exports = {
         isWebPreview = true;
         runExpo(previewUrl, clean, authToken);
     },
+    extendWebPreview: (overrides) => Object.assign(hooks, overrides),
+    getWmProjectDir: getWmProjectDir,
+    getExpoProjectDir: getExpoProjectDir,
     runExpo: runExpo,
     runAndroid: (previewUrl, clean) => runNative(previewUrl, 'android', clean),
     runIos: (previewUrl, clean) => runNative(previewUrl, 'ios', clean),
