@@ -9,7 +9,7 @@ const {
 } = require('./exec');
 const loggerLabel = 'rn-cli-requirements';
 let VERSIONS = {
-    'NODE': '22.13.0',
+    'NODE': '22.11.0',
     'POD' : '1.9.0',
     'JAVA': '17.0.0',
     'REACT_NATIVE': '0.86.3',
