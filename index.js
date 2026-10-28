@@ -9,6 +9,7 @@ const {
     runExpo, runAndroid, runIos, sync, runESBuildWebPreview
 } = require('./src/expo-launcher');
 const { runWeb } = require('./src/web-preview-launcher');
+const { runMetroWebPreview } = require('./src/metro-web-preview-launcher');
 const updateNotifierModule = require('update-notifier');
 const updateNotifier = updateNotifierModule.default || updateNotifierModule;
 const pkg = require('./package.json');
@@ -28,6 +29,28 @@ const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
 global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnative-cli`;
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
 // src is the web react native project zip
+
+const chalk = require("chalk");
+
+(function showDeprecationWarning() {
+  console.warn(
+    chalk.yellow.bold(
+      "\n" +
+      "╔═════════════════════════════════════════════════════╗\n" +
+      "║             ⚠ DEPRECATION WARNING ⚠                 ║\n" +
+      "╠═════════════════════════════════════════════════════╣\n" +
+      "║                                                     ║\n" +
+      "║  This CLI (wm-reactnative-ai) is deprecated         ║\n" +
+      "║  and will no longer receive future updates.         ║\n" +
+      "║                                                     ║\n" +
+      "║  Please use the CLI with wm-reactnative             ║\n" +
+      "║                                                     ║\n" +
+      "║  Install: npm i -g @wavemaker/wm-reactnative-cli    ║\n" +
+      "║                                                     ║\n" +
+      "╚═════════════════════════════════════════════════════╝\n"
+    )
+  );
+})();
 
 async function handleDeprecatedCommands(args) {
     const syncCommand = `wm-reactnative sync ${args.previewUrl} ${args.clean ? '--clean' : ''} ${args.useProxy ? '--useProxy' : ''}`;
@@ -279,6 +302,11 @@ const args = require('yargs')
                     describe: 'if set true, progress bar will show',
                     default: false,
                     type: 'boolean'
+                })
+                .option('metro', {
+                    describe: 'Build with codegen\'s split-bundle (Metro) pipeline, as Studio does. Use --esbuild for projects on older codegen.',
+                    default: false,
+                    type: 'boolean'
                 });
             },
             (args) => {
@@ -297,9 +325,9 @@ const args = require('yargs')
                 const splits = args.previewUrl.split('#');
                 args.previewUrl = splits[0];
                 const authToken = splits[1];
-                if (args.esbuild) {
+                if (args.metro || args.esbuild) {
                     overallProgressBar.setTotal(totalCount-previewSteps[4].total);
-                    runESBuildWebPreview(args.previewUrl, args.clean, authToken);
+                    (args.metro ? runMetroWebPreview : runESBuildWebPreview)(args.previewUrl, args.clean, authToken);
                 } else {
                     overallProgressBar.setTotal(totalCount);
                     runWeb(args.previewUrl, args.clean, authToken, args.proxyHost, args.basePath);

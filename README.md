@@ -165,7 +165,8 @@ wm-reactnative-ai run web-preview <preview_url> [additional_arguments]
 |--|--|
 | **preview_url** | app preview url |
 |**\-\-clean**| With this flag, existing project directory is removed |
-|**\-\-esbuild**| With this flag, the preview uses the esbuild bundler instead of Expo Metro bundler. This is the standard preview mode used in Studio. |
+|**\-\-esbuild**| With this flag, the preview uses the esbuild bundler instead of Expo Metro bundler. Use this for projects on older codegen versions. |
+|**\-\-metro**| With this flag, the preview uses the Metro split-bundle build. This is the standard preview mode used in Studio. |
 
 ## Sync
 
