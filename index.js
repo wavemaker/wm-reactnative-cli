@@ -30,6 +30,28 @@ global.rootDir = process.env.WM_REACTNATIVE_CLI || `${os.homedir()}/.wm-reactnat
 global.localStorage = new LocalStorage(`${global.rootDir}/.store`);
 // src is the web react native project zip
 
+const chalk = require("chalk");
+
+(function showDeprecationWarning() {
+  console.warn(
+    chalk.yellow.bold(
+      "\n" +
+      "╔═════════════════════════════════════════════════════╗\n" +
+      "║             ⚠ DEPRECATION WARNING ⚠                 ║\n" +
+      "╠═════════════════════════════════════════════════════╣\n" +
+      "║                                                     ║\n" +
+      "║  This CLI (wm-reactnative-ai) is deprecated         ║\n" +
+      "║  and will no longer receive future updates.         ║\n" +
+      "║                                                     ║\n" +
+      "║  Please use the CLI with wm-reactnative             ║\n" +
+      "║                                                     ║\n" +
+      "║  Install: npm i -g @wavemaker/wm-reactnative-cli    ║\n" +
+      "║                                                     ║\n" +
+      "╚═════════════════════════════════════════════════════╝\n"
+    )
+  );
+})();
+
 async function handleDeprecatedCommands(args) {
     const syncCommand = `wm-reactnative sync ${args.previewUrl} ${args.clean ? '--clean' : ''} ${args.useProxy ? '--useProxy' : ''}`;
     const response = await showConfirmation(

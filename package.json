@@ -1,6 +1,6 @@
 {
   "name": "@wavemaker-ai/wm-reactnative-cli",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "bin": {
