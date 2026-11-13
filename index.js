@@ -12,6 +12,7 @@ const { runWeb } = require('./src/web-preview-launcher');
 const { runMetroWebPreview } = require('./src/metro-web-preview-launcher');
 const pkg = require('./package.json');
 const { canDoAndroidBuild, canDoIosBuild, showConfirmation } = require('./src/requirements');
+const { ensureRequiredVersion } = require('./src/required-version');
 // update-notifier >= 6 is ESM-only; a dynamic import() works from CommonJS on every Node version
 // (a require() throws ERR_REQUIRE_ESM before Node 22.12).
 import('update-notifier').then(({ default: updateNotifier }) => {
@@ -45,7 +46,8 @@ async function handleDeprecatedCommands(args) {
     sync(args.previewUrl, args.clean, args.useProxy);
 }
 
-const args = require('yargs')
+function runCli() {
+return require('yargs')
     .command('build', 'build the project to generate android and ios folders', yargs => {
             yargs.command('android [src] [options]', 'build for android', yargs => {
                 yargs.option('appId', {
@@ -387,5 +389,18 @@ const args = require('yargs')
         overallProgressBar.setTotal(totalCount);
         sync(args.previewUrl, args.clean, args.useProxy);
     })
+    .option('ignoreUpgrade', {
+        describe: 'Skip the required CLI upgrade check and run the command on the installed version.',
+        default: false,
+        type: 'boolean',
+        global: true
+    })
     .help('h')
     .alias('h', 'help').argv;
+}
+
+ensureRequiredVersion().then(proceed => {
+    if (proceed) {
+        runCli();
+    }
+});

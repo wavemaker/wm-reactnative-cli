@@ -353,36 +353,68 @@ async function setup(previewUrl, _clean, authToken) {
     return {projectDir, syncProject};
 }
 
-async function watchProjectChanges(previewUrl, onChange, lastModifiedOn) {
-    try {
-        if(isExpoPreviewContainer){
-            const response = await axios.get(`${previewUrl}/rn-bundle/index.bundle?minify=true&platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable`, {
-                headers: {
-                    'if-none-match' : etag || ""
-                }
-            }).catch((e) => e.response);
-            etag = response.headers.etag;
-            if (response.status === 200) {
-                onChange();
+const WATCH_INTERVAL_MS = 5000;
+
+async function hasPreviewBundleChanged(previewUrl, state) {
+    if (isExpoPreviewContainer) {
+        const response = await axios.get(`${previewUrl}/rn-bundle/index.bundle?minify=true&platform=web&dev=true&hot=false&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable`, {
+            headers: {
+                'if-none-match' : etag || ""
             }
-        }else{
-            const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
-                headers: {
-                    'if-modified-since' : lastModifiedOn || new Date().toString()
-                }
-            }).catch((e) => e.response);
-            if (response.status === 200 && response.data.indexOf(`<title>${await getAppName(previewUrl)}</title>`) > 0) {
-                lastModifiedOn = response.headers['last-modified'];
-                onChange();
-            }
-        }
-    } catch(e) {
-        logger.debug({
-            label: loggerLabel,
-            message: e
-        });
+        }).catch((e) => e.response);
+        etag = response.headers.etag;
+        return response.status === 200;
     }
-    setTimeout(() => watchProjectChanges(previewUrl, onChange, lastModifiedOn), 5000);
+    const response = await axios.get(`${previewUrl}/rn-bundle/index.html`, {
+        headers: {
+            'if-modified-since' : state.lastModifiedOn || new Date().toString()
+        }
+    }).catch((e) => e.response);
+    if (response.status === 200 && response.data.indexOf(`<title>${await getAppName(previewUrl)}</title>`) > 0) {
+        state.lastModifiedOn = response.headers['last-modified'];
+        return true;
+    }
+    return false;
+}
+
+async function watchProjectChanges(previewUrl, onChange, getChangeFingerprint) {
+    const state = {
+        lastModifiedOn: undefined,
+        fingerprint: getChangeFingerprint ? await getChangeFingerprint() : null
+    };
+    const fingerprintChanged = async () => {
+        if (!getChangeFingerprint) {
+            return false;
+        }
+        const fingerprint = await getChangeFingerprint();
+        if (!fingerprint) {
+            return false;
+        }
+        const changed = !!state.fingerprint && fingerprint !== state.fingerprint;
+        state.fingerprint = fingerprint;
+        return changed;
+    };
+    const poll = async () => {
+        try {
+            const savedInStudio = await fingerprintChanged();
+            const previewRebuilt = await hasPreviewBundleChanged(previewUrl, state);
+            if (savedInStudio || previewRebuilt) {
+                logger.debug({
+                    label: loggerLabel,
+                    message: `change detected (${savedInStudio ? 'saved in Studio' : 'preview rebuilt'})`
+                });
+                await onChange();
+                await fingerprintChanged();
+            }
+        } catch(e) {
+            logger.debug({
+                label: loggerLabel,
+                message: e
+            });
+        }
+        setTimeout(poll, WATCH_INTERVAL_MS);
+    };
+    poll();
 }
 // expo android, ios are throwing errors with reanimated plugin
 // hence modifying the 2.8.0version and just adding chrome debugging fix to this.
@@ -490,7 +522,7 @@ async function runExpo(previewUrl, clean, authToken) {
                 taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
             });
         };
-        (hooks.watchProjectChanges || watchProjectChanges)(previewUrl, onProjectChange);
+        (hooks.watchProjectChanges || watchProjectChanges)(previewUrl, onProjectChange, syncProject.getChangeFingerprint);
         watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
     } catch(e) {
         logger.error({
@@ -512,7 +544,7 @@ async function sync(previewUrl, clean) {
     isExpoPreviewContainer = await isExpoWebPreviewContainer(previewUrl);
     watchProjectChanges(previewUrl, () => {
         const startTime = Date.now();
-        syncProject()
+        return syncProject()
         .then(() => {
             logger.info({
                 label: loggerLabel,
@@ -527,7 +559,7 @@ async function sync(previewUrl, clean) {
             });
             taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
         });
-    });
+    }, syncProject.getChangeFingerprint);
     watchForPlatformChanges(() => { 
         const startTime = Date.now();
         return transpile(projectDir, previewUrl, false).then(() => {
@@ -568,7 +600,7 @@ async function runNative(previewUrl, platform, clean) {
         });
         watchProjectChanges(previewUrl, () => {
             const startTime = Date.now();
-            syncProject()
+            return syncProject()
                 .then(() => {
                     logger.info({
                         label: loggerLabel,
@@ -582,7 +614,7 @@ async function runNative(previewUrl, platform, clean) {
                         message: `Total Time: ${(Date.now() - startTime)/ 1000}s.`
                     });
                 });
-        });
+        }, syncProject.getChangeFingerprint);
         watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
     } catch(e) {
         logger.error({
