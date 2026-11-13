@@ -13,6 +13,26 @@ The main goal of wm-reactnative-cli is to simplify generation of APK or IPA for 
 npm install -g @wavemaker/wm-reactnative-cli
 ~~~
 
+### Required updates
+
+When a newer release of the CLI is marked as required (for example, because it carries an important fix), any command run on an older version stops and asks to upgrade first:
+
+~~~
+! You're on 1.9.13. Release 1.9.14 is required:
+? Upgrade to 1.9.14 and run your command again? (Y/n)
+✔ Upgraded to 1.9.14
+● Running: wm-reactnative sync <preview_url>
+~~~
+
+- Answer **Y** (or press Enter) to install the required version and re-run your command on it.
+- Answer **n** to stop; the command to upgrade yourself is printed.
+- Without a terminal (CI, scripts) the CLI never prompts: it prints the upgrade command and exits with code 1.
+- To skip the check and run on the installed version anyway, add `--ignoreUpgrade` to any command:
+
+~~~
+wm-reactnative sync <preview_url> --ignoreUpgrade
+~~~
+
 ### Adding Environment Variable
 
 #### For Windows
@@ -85,6 +105,7 @@ wm-reactnative build android <src_dir> [additional_arguments]
 |**\-\-buildType**|**DEFAULT:** development<br>development or production<br>Use ‘production’ with keystore specified.|
 |**\-\-architecture**|Specifies the target Application Binary Interfaces (ABIs) for the build.<br>**DEFAULT:** All <br>**CHOICES:** armeabi-v7a, arm64-v8a, x86, x86_64. <br>**Example for single ABI:** --architecture=armeabi-v7a <br>**Example for multiple ABIs:** --architecture=armeabi-v7a  --architecture=arm64-v8a |
 |**\-\-verbose**|**DEFAULT:** false <br> if true, then all the logs will be shown in the terminal. |
+|**\-\-ignoreUpgrade**|**DEFAULT:** false <br> if true, skips the [required CLI upgrade](#required-updates) check and runs on the installed version. |
 
 
 ### Example 1
@@ -138,6 +159,7 @@ wm-reactnative build ios <src_dir> [additional_arguments]
 |**\-\-iProvisioningFile**|Absolute path of provisioning file|
 |**\-\-buildType**|**DEFAULT:** development<bR>development or production <br>Use ‘production’ with an AppStore distribution certificate.|
 |**\-\-verbose**|**DEFAULT:** false <br> if true, then all the logs will be shown in the terminal. |
+|**\-\-ignoreUpgrade**|**DEFAULT:** false <br> if true, skips the [required CLI upgrade](#required-updates) check and runs on the installed version. |
 
 
 ### Example
@@ -172,6 +194,7 @@ wm-reactnative run web-preview <preview_url> [additional_arguments]
 |**\-\-esbuild**| With this flag, the preview uses the esbuild bundler instead of Expo Metro bundler. Use this for projects on older codegen versions. |
 |**\-\-metro**| With this flag, the preview uses the Metro split-bundle build. This is the standard preview mode used in Studio. |
 |**\-\-verbose**|**DEFAULT:** false <br> if true, then all the logs will be shown in the terminal. |
+|**\-\-ignoreUpgrade**|**DEFAULT:** false <br> if true, skips the [required CLI upgrade](#required-updates) check and runs on the installed version. |
 
 ## Sync
 
@@ -191,6 +214,7 @@ wm-reactnative sync <preview_url> [additional_arguments]
 |**\-\-clean**|**DEFAULT:** false <br> if true, existing project directory is removed |
 |**\-\-useProxy**|**DEFAULT:** false <br> if true, then all preview requests are routed through a internal proxy server. |
 |**\-\-verbose**|**DEFAULT:** false <br> if true, then all the logs will be shown in the terminal. |
+|**\-\-ignoreUpgrade**|**DEFAULT:** false <br> if true, skips the [required CLI upgrade](#required-updates) check and runs on the installed version. |
 
 After the build is complete:
 
