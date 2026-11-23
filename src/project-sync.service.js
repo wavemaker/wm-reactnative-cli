@@ -12,26 +12,32 @@ const { unzip } = require('./zip');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const {previewSteps} = require('./custom-logger/steps');
 const chalk = require('chalk');
+const { showConfirmation } = require('./requirements');
 //const PULL_URL = '/studio/services/projects/${projectId}/vcs/remoteChanges';
-const STORE_KEY = 'user.auth.token';
+const AUTH_FILE = 'auth.json';
+const LEGACY_STORE = '.store';
 const MAX_REQUEST_ALLOWED_TIME = 5 * 60 * 1000;
 const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
 let WM_PLATFORM_VERSION = '';
 let IS_AI_PLATFORM = false;
 
-async function findProjectId(config) {
-    const projectList = (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
+async function getProjectList(config) {
+    return (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
         {headers: {
             cookie: config.authCookie
         }})).data;
-    const project = projectList.filter(p => p.displayName === config.projectName)
-        .filter(p => (config.appPreviewUrl.endsWith(p.name + "_" + p.vcsBranchId)));
-    if (project && project.length) {
-        WM_PLATFORM_VERSION = project[0].platformVersion;
-        IS_AI_PLATFORM = /\.wavemaker\.ai/.test(config.baseUrl);
-        return project[0].studioProjectId;
-    }
+}
+
+function matchProject(projectList, config) {
+    return projectList.filter(p => p.displayName === config.projectName)
+        .find(p => config.appPreviewUrl.endsWith(p.name + "_" + p.vcsBranchId));
+}
+
+function useProject(project, config) {
+    WM_PLATFORM_VERSION = project.platformVersion;
+    IS_AI_PLATFORM = /\.wavemaker\.ai/.test(config.baseUrl);
+    return project.studioProjectId;
 }
 
 async function downloadFile(res, tempFile){
@@ -277,29 +283,15 @@ async function authenticateWithUserNameAndPassword(config) {
     });
 }
 
-async function authenticateWithToken(config, showHelp) {
-    try {
-    if (showHelp) {
-        console.log('***************************************************************************************');
-        console.log('* Please open the below url in the browser, where your WaveMaker studio is opened.    *');
-        console.log('* Copy the response content and paste in the terminal.                                *');
-        console.log('***************************************************************************************');
-        console.log(`\n\n`);
-        console.log(`${config.baseUrl}/studio/services/auth/token`);
-        console.log(`\n\n`);
-    }
-    const cookie = (await getAuthToken()).token.split(';')[0];
-    if (!cookie) {
-        console.log('Not able to login. Try again.');
-        return authenticateWithToken(config);
-    }
-    return 'auth_cookie='+cookie;
-    } catch (e) {
-        logger.info({
-            label: loggerLabel,
-            message: e+` Your authentication has failed. Please proceed with a valid token.`
-        });
-    }
+function printTokenHelp(config, status, isSaved) {
+    const reasons = {
+        missing: `No access token saved for project "${config.projectName}".`,
+        rejected: isSaved ? 'The saved access token is expired or was revoked.' : 'That access token was rejected. It may be mistyped, expired or revoked.',
+        'wrong-project': `This token does not have access to project "${config.projectName}".`
+    };
+    console.log(`\n${reasons[status]}`);
+    console.log(`In Studio (${config.baseUrl}), open your project, then go to Settings -> Access Tokens.`);
+    console.log('Generate a token with the Sync Plugin scope and paste it below.\n');
 }
 
 function getUserCredentials() {
@@ -330,7 +322,8 @@ function getAuthToken() {
     var schema = {
         properties: {
             token: {
-                required: true
+                required: true,
+                hidden: true
             }
         }
       };
@@ -346,47 +339,119 @@ function getAuthToken() {
     });
 }
 
-async function checkAuthCookie(config) {
-    try {
-        await findProjectId(config);
-        logger.info({
-            label: loggerLabel,
-            message: `user authenticated.`
-        });
-    } catch(e) {
-        return false;
+async function checkAccess(config) {
+    if (!config.authCookie) {
+        return {status: 'missing'};
     }
-    return true;
+    let projectList;
+    try {
+        projectList = await getProjectList(config);
+    } catch (e) {
+        if (e.response && [401, 403].includes(e.response.status)) {
+            return {status: 'rejected'};
+        }
+        throw e;
+    }
+    const project = matchProject(projectList, config);
+    return {status: project ? 'ok' : 'wrong-project', project};
+}
+
+function toAuthCookie(token) {
+    return 'auth_cookie=' + token.trim().split(';')[0];
+}
+
+function authStoreKey(baseUrl, projectName) {
+    return `${baseUrl}|${projectName}`;
+}
+
+function authFile() {
+    return path.join(global.rootDir, AUTH_FILE);
+}
+
+function readAuthStore() {
+    const file = authFile();
+    if (!fs.existsSync(file)) {
+        return {};
+    }
+    try {
+        const store = fs.readJsonSync(file);
+        if (store && typeof store === 'object' && !Array.isArray(store)) {
+            return store;
+        }
+        throw new Error('expected a JSON object');
+    } catch (e) {
+        console.log(`${file} is unreadable (${e.message}). Saved tokens are ignored and the file is replaced when you save.`);
+        return {};
+    }
+}
+
+function writeAuthStore(store) {
+    const file = authFile();
+    const tmp = `${file}.tmp`;
+    try {
+        fs.mkdirpSync(global.rootDir);
+        fs.removeSync(tmp);
+        fs.writeFileSync(tmp, JSON.stringify(store, null, 2), {mode: 0o600});
+        fs.renameSync(tmp, file);
+    } catch (e) {
+        fs.removeSync(tmp);
+        console.log(`Could not write ${file} (${e.message}). This run still uses the token.`);
+    }
+}
+
+function removeLegacyTokenStore() {
+    const legacy = path.join(global.rootDir, LEGACY_STORE);
+    try {
+        fs.removeSync(legacy);
+    } catch (e) {
+        console.log(`Could not remove the old token store ${legacy} (${e.message}).`);
+    }
+}
+
+async function askToSaveToken(projectName) {
+    const answer = await showConfirmation(`Save this token for project "${projectName}" on this machine? (yes/no)`);
+    return answer === 'yes' || answer === 'y';
 }
 
 async function setup(previewUrl, projectName, authToken) {
-    if (authToken) {
-        authToken = 'auth_cookie=' + authToken;
-    }
     if (previewUrl.endsWith('/')) {
         previewUrl = previewUrl.slice(0, -1);
     }
+    removeLegacyTokenStore();
+    const baseUrl = new URL(previewUrl).origin;
+    const storeKey = authStoreKey(baseUrl, projectName);
+    const store = readAuthStore();
+    const saved = typeof store[storeKey] === 'string' ? store[storeKey] : '';
     const config = {
-        authCookie : authToken || global.localStorage.getItem(STORE_KEY) || '',
-        baseUrl: new URL(previewUrl).origin,
+        authCookie: authToken ? toAuthCookie(authToken) : saved,
+        baseUrl,
         appPreviewUrl: previewUrl,
         projectName: projectName
     };
-    const isAuthenticated = await checkAuthCookie(config);
-    if (!isAuthenticated) {
-        //console.log(`Need to login to Studio (${config.baseUrl}). \n Please enter your Studio credentails.`);
-        //config.authCookie = await authenticateWithUserNameAndPassword(config);
-        config.authCookie = await authenticateWithToken(config, true);
+    let {status, project} = await checkAccess(config);
+    if (status === 'rejected' && saved && config.authCookie === saved) {
+        delete store[storeKey];
+        writeAuthStore(store);
     }
-    global.localStorage.setItem(STORE_KEY, config.authCookie);
+    let typed = false;
+    while (status !== 'ok') {
+        printTokenHelp(config, status, !typed && config.authCookie === saved);
+        config.authCookie = toAuthCookie((await getAuthToken()).token);
+        typed = true;
+        ({status, project} = await checkAccess(config));
+    }
+    if (typed && await askToSaveToken(projectName)) {
+        store[storeKey] = config.authCookie;
+        writeAuthStore(store);
+    }
     taskLogger.incrementProgress(1);
     taskLogger.succeed(previewSteps[1].succeed);
-    return config;
+    return {config, project};
 }
 
 async function setupProject(previewUrl, projectName, toDir, authToken) {
-    const config = await setup(previewUrl, projectName, authToken);
-    const projectId = await findProjectId(config);
+    const {config, project} = await setup(previewUrl, projectName, authToken);
+    const projectId = useProject(project, config);
     await downloadProject(projectId, config, toDir);
     return () => pullChanges(projectId, config, toDir);
 };

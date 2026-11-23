@@ -188,7 +188,7 @@ async function showConfirmation(message) {
         prompt.get({
             properties: {
                 confirm: {
-                    pattern: /^(yes|no|y|n)$/gi,
+                    pattern: /^(yes|no|y|n)$/i,
                     description: message,
                     message: 'Type yes/no',
                     required: true,
@@ -197,7 +197,7 @@ async function showConfirmation(message) {
             }
         }, function (err, result) {
             if (err) {
-                reject();
+                return reject(err);
             }
             resolve(result.confirm.toLowerCase());
         });

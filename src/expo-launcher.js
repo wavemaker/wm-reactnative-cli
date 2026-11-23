@@ -248,9 +248,17 @@ async function transpile(projectDir, previewUrl, incremental) {
         });
         taskLogger.incrementProgress(2);
         taskLogger.succeed(`${previewSteps[3].succeed}`)
-
+        return true;
     }catch(e){
         taskLogger.fail(previewSteps[3].fail);
+        console.error(e instanceof Error ? e.message : `Command failed with exit code ${e}.`);
+        return false;
+    }
+}
+
+async function transpileOrFail(projectDir, previewUrl) {
+    if (await transpile(projectDir, previewUrl, false) === false) {
+        throw new Error('Code generation failed, see the error above.');
     }
 }
 
@@ -349,7 +357,7 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.resetProgressBar();
     taskLogger.setTotal(previewSteps[1].total)
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
-    await transpile(projectDir, previewUrl, false);
+    await transpileOrFail(projectDir, previewUrl);
     return {projectDir, syncProject};
 }
 
@@ -553,7 +561,7 @@ async function runNative(previewUrl, platform, clean) {
         await exec('npx', ['expo','prebuild'], {
             cwd: getExpoProjectDir(projectDir)
         });
-        await transpile(projectDir, previewUrl, false);
+        await transpileOrFail(projectDir, previewUrl);
         await installDependencies(projectDir);
         if (platform === 'ios') {
             await exec('pod', ['install'], {
