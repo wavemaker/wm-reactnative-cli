@@ -13,7 +13,7 @@ const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDe
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion, EXPO_SDK_54_0_12, EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION} = require('./requirements');
 const axios = require('axios');
-const { setupProject } = require('./project-sync.service');
+const { setupProject, pullsGitBundle } = require('./project-sync.service');
 const { getProjectScope } = require('./wm-scope');
 const path = require('path');
 const semver = require('semver');
@@ -234,7 +234,10 @@ async function transpile(projectDir, previewUrl, incremental) {
         } else {
             config.serverPath = previewUrl;
         }
-        fs.writeFileSync(configJSONFile, JSON.stringify(config, null, 4));
+        const configJSON = JSON.stringify(config, null, 4);
+        if (fs.readFileSync(configJSONFile, 'utf-8') !== configJSON) {
+            fs.writeFileSync(configJSONFile, configJSON);
+        }
         // TODO: iOS app showing blank screen
         if (!(config.sslPinning && config.sslPinning.enabled)) {
             await readAndReplaceFileContent(`${getExpoProjectDir(projectDir)}/App.js`, content => {
@@ -361,7 +364,24 @@ async function setup(previewUrl, _clean, authToken) {
     return {projectDir, syncProject};
 }
 
-const WATCH_INTERVAL_MS = 5000;
+const WATCH_INTERVAL_MS = 1000;
+const LEGACY_WATCH_INTERVAL_MS = 5000;
+
+function logTiming(label, startTime) {
+    const message = `${label}: ${(Date.now() - startTime) / 1000}s.`;
+    logger.info({label: loggerLabel, message});
+    taskLogger.info(message);
+}
+
+async function syncAndTranspile(projectDir, previewUrl, syncProject) {
+    const startTime = Date.now();
+    if (!await syncProject()) {
+        return;
+    }
+    logTiming('Sync Time', startTime);
+    await transpile(projectDir, previewUrl, true);
+    logTiming('Total Time', startTime);
+}
 
 async function hasPreviewBundleChanged(previewUrl, state) {
     if (isExpoPreviewContainer) {
@@ -385,34 +405,13 @@ async function hasPreviewBundleChanged(previewUrl, state) {
     return false;
 }
 
-async function watchProjectChanges(previewUrl, onChange, getChangeFingerprint) {
-    const state = {
-        lastModifiedOn: undefined,
-        fingerprint: getChangeFingerprint ? await getChangeFingerprint() : null
-    };
-    const fingerprintChanged = async () => {
-        if (!getChangeFingerprint) {
-            return false;
-        }
-        const fingerprint = await getChangeFingerprint();
-        if (!fingerprint) {
-            return false;
-        }
-        const changed = !!state.fingerprint && fingerprint !== state.fingerprint;
-        state.fingerprint = fingerprint;
-        return changed;
-    };
+function watchProjectChanges(previewUrl, projectDir, syncProject) {
+    const pollStudio = pullsGitBundle();
+    const state = {lastModifiedOn: undefined};
     const poll = async () => {
         try {
-            const savedInStudio = await fingerprintChanged();
-            const previewRebuilt = await hasPreviewBundleChanged(previewUrl, state);
-            if (savedInStudio || previewRebuilt) {
-                logger.debug({
-                    label: loggerLabel,
-                    message: `change detected (${savedInStudio ? 'saved in Studio' : 'preview rebuilt'})`
-                });
-                await onChange();
-                await fingerprintChanged();
+            if (pollStudio || await hasPreviewBundleChanged(previewUrl, state)) {
+                await syncAndTranspile(projectDir, previewUrl, syncProject);
             }
         } catch(e) {
             logger.debug({
@@ -420,7 +419,7 @@ async function watchProjectChanges(previewUrl, onChange, getChangeFingerprint) {
                 message: e
             });
         }
-        setTimeout(poll, WATCH_INTERVAL_MS);
+        setTimeout(poll, pollStudio ? WATCH_INTERVAL_MS : LEGACY_WATCH_INTERVAL_MS);
     };
     poll();
 }
@@ -511,26 +510,11 @@ async function runExpo(previewUrl, clean, authToken) {
         taskLogger.info(`generated esbuild web app at ${projectDir}`);
         taskLogger.succeed(chalk.green("Esbuild finished ") + chalk.blue(`Service proxy launched at ${localHostUrl}`));
         isExpoPreviewContainer = await isExpoWebPreviewContainer(previewUrl);
-        const onProjectChange = () => {
-            const startTime = Date.now();
-            return syncProject()
-            .then(() => {
-                logger.info({
-                    label: loggerLabel,
-                    message: `Sync Time: ${(Date.now() - startTime)/ 1000}s.`
-                });
-                taskLogger.info(`Sync Time: ${(Date.now() - startTime)/ 1000}s.`);
-            })
-            .then(() => transpile(projectDir, previewUrl, true))
-            .then(() => {
-                logger.info({
-                    label: loggerLabel,
-                    message: `Total Time: ${(Date.now() - startTime)/ 1000}s.`
-                });
-                taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
-            });
-        };
-        (hooks.watchProjectChanges || watchProjectChanges)(previewUrl, onProjectChange, syncProject.getChangeFingerprint);
+        if (hooks.watchProjectChanges) {
+            hooks.watchProjectChanges(previewUrl, () => syncAndTranspile(projectDir, previewUrl, syncProject));
+        } else {
+            watchProjectChanges(previewUrl, projectDir, syncProject);
+        }
         watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
     } catch(e) {
         logger.error({
@@ -550,24 +534,7 @@ async function sync(previewUrl, clean) {
     }
     taskLogger.succeed(chalk.green("Sync finished ") + chalk.blue(`generated expo project at : ${getExpoProjectDir(projectDir)}`));
     isExpoPreviewContainer = await isExpoWebPreviewContainer(previewUrl);
-    watchProjectChanges(previewUrl, () => {
-        const startTime = Date.now();
-        return syncProject()
-        .then(() => {
-            logger.info({
-                label: loggerLabel,
-                message: `Sync Time: ${(Date.now() - startTime)/ 1000}s.`
-            });
-            taskLogger.info(`Sync Time: ${(Date.now() - startTime)/ 1000}s.`);
-        }).then(() => transpile(projectDir, previewUrl, true))
-        .then(() => {
-            logger.info({
-                label: loggerLabel,
-                message: `Total Time: ${(Date.now() - startTime)/ 1000}s.`
-            });
-            taskLogger.info(`Total Time: ${(Date.now() - startTime)/ 1000}s.`);
-        });
-    }, syncProject.getChangeFingerprint);
+    watchProjectChanges(previewUrl, projectDir, syncProject);
     watchForPlatformChanges(() => { 
         const startTime = Date.now();
         return transpile(projectDir, previewUrl, false).then(() => {
@@ -606,23 +573,7 @@ async function runNative(previewUrl, platform, clean) {
         ], {
             cwd: getExpoProjectDir(projectDir)
         });
-        watchProjectChanges(previewUrl, () => {
-            const startTime = Date.now();
-            return syncProject()
-                .then(() => {
-                    logger.info({
-                        label: loggerLabel,
-                        message: `Sync Time: ${(Date.now() - startTime)/ 1000}s.`
-                    });
-                })
-                .then(() => transpile(projectDir, previewUrl, true))
-                .then(() => {
-                    logger.info({
-                        label: loggerLabel,
-                        message: `Total Time: ${(Date.now() - startTime)/ 1000}s.`
-                    });
-                });
-        }, syncProject.getChangeFingerprint);
+        watchProjectChanges(previewUrl, projectDir, syncProject);
         watchForPlatformChanges(() => transpile(projectDir, previewUrl, false));
     } catch(e) {
         logger.error({

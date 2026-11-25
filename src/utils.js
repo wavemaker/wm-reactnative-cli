@@ -21,7 +21,9 @@ async function readAndReplaceFileContent(path, writeFn) {
         return writeFn && writeFn(content);
     }).then((modifiedContent) => {
         if (modifiedContent !== undefined && modifiedContent !== null) {
-            fs.writeFileSync(path, modifiedContent);
+            if (modifiedContent !== content) {
+                fs.writeFileSync(path, modifiedContent);
+            }
             return modifiedContent;
         }
         return content;

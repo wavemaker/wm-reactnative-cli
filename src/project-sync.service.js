@@ -1,5 +1,4 @@
 const { URL } = require('url');
-const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
 const logger = require('./logger');
@@ -22,8 +21,11 @@ const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
 let WM_PLATFORM_VERSION = '';
 let IS_AI_PLATFORM = false;
-const CHANGE_SIGNAL_ENDPOINTS = ['vcs/log?limit=1&offset=0'];
-const CHANGE_SIGNAL_TIMEOUT_MS = 10 * 1000;
+let lastPullError = '';
+
+function pullsGitBundle() {
+    return !semver.lt(WM_PLATFORM_VERSION, '11.4.0') || IS_AI_PLATFORM;
+}
 
 async function getProjectList(config) {
     return (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
@@ -160,106 +162,77 @@ async function gitResetAndPull(tempDir, projectDir){
 }
 
 async function pullChanges(projectId, config, projectDir) {
+    const tempDir = path.join(os.tmpdir(), `changes_${Date.now()}`);
     try {
-    const output = await exec('git', ['rev-parse', 'HEAD'], {
-        cwd: projectDir
-    });
-    const headCommitId = output[0];
-    logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
-    taskLogger.start('pulling new changes from studio...');
-    const tempDir = path.join(`${os.tmpdir()}`, `changes_${Date.now()}`);
-    if (semver.lt(WM_PLATFORM_VERSION, '11.4.0') && !IS_AI_PLATFORM) {
-        const tempFile = `${os.tmpdir()}/changes_${Date.now()}.zip`;
-        console.log(tempFile);
-        const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/remoteChanges?headCommitId=${headCommitId}`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-        });
-        await downloadFile(res, tempFile);
+        const headCommitId = (await exec('git', ['rev-parse', 'HEAD'], {cwd: projectDir}))[0];
+        logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
         fs.mkdirpSync(tempDir);
-        await unzip(tempFile, tempDir);
-    
-        await gitResetAndPull(tempDir, projectDir);
-        await exec('git', ['apply', '--allow-empty', '--ignore-space-change', path.join(tempDir, 'patchFile.patch')], {cwd: projectDir});
-        logger.debug({label: loggerLabel, message: 'Copying any uncommitted binary files'});
-        copyContentsRecursiveSync(path.join(tempDir, 'binaryFiles'), projectDir);    
-        fs.unlink(tempFile);
-    }
-    else{
-        const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {
-            responseType: 'json',
-            headers: {
-                cookie: config.authCookie
-            }
-        });
-        if (gitInfo.status !== 200) {
-            throw new Error('failed to pull project changes');
-        }
-        const fileId = gitInfo.data.fileId;
-        remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
-        const res = await axios.get(`${config.baseUrl}/file-service/${fileId}`, {
-            responseType: 'stream',
-            headers: {
-                cookie: config.authCookie
-            }
-        })
-        fs.mkdirpSync(tempDir);
-        const tempFile = `${tempDir}/remoteChanges.bundle`;
-        await downloadFile(res, tempFile);
-        await gitResetAndPull(tempDir, projectDir);
-        fs.unlink(tempFile);
-    }
-    fs.rmSync(tempDir, { recursive: true, force: true });
-    taskLogger.succeed(`pulled new changes from studio - head commit id ${headCommitId}`);
-    let filesChanged = await exec('git', ['diff','--name-status', 'HEAD~1', 'HEAD'], {cwd: projectDir});
-    filesChanged = filesChanged.filter(Boolean);
-    const changes = filesChanged.map((line) => {
-      const [status, ...fileParts] = line.trim().split(/\s+/);
-      const filePath = fileParts.join(' ').replace(/^.*webapp\//, '');
-      return { status, filePath };
-    });
-  
-    const formatted = changes.map(({ status, filePath }) => {
-        const color = status === 'A' ? chalk.green
-                    : status === 'D' ? chalk.red
-                    : status === 'M' ? chalk.yellow
-                    : chalk.cyan;
-    
-        return `${color(status)}:${color(filePath)}`;
-      });
-      taskLogger.info("Files changed: \n\t" + formatted.join('\n\t'));
-    } catch (e) {
-        logger.info({
-            label: loggerLabel,
-            message: e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`
-        });
-        taskLogger.succeed( e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`);
-    }
-}
-
-async function getChangeFingerprint(projectId, config) {
-    try {
-        const bodies = await Promise.all(CHANGE_SIGNAL_ENDPOINTS.map(async (endpoint) => {
-            const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/${endpoint}`, {
+        if (pullsGitBundle()) {
+            const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {
+                responseType: 'json',
                 headers: {
                     cookie: config.authCookie
-                },
-                maxRedirects: 0,
-                timeout: CHANGE_SIGNAL_TIMEOUT_MS,
-                responseType: 'text',
-                transformResponse: (data) => data
+                }
             });
-            return res.data;
-        }));
-        return crypto.createHash('sha1').update(bodies.join('\n')).digest('hex');
-    } catch (e) {
-        logger.debug({
-            label: loggerLabel,
-            message: `could not read the Studio change signal: ${e.message}`
+            if (gitInfo.status !== 200) {
+                throw new Error('failed to pull project changes');
+            }
+            remoteBaseCommitId = gitInfo.data.remoteBaseCommitId;
+            const res = await axios.get(`${config.baseUrl}/file-service/${gitInfo.data.fileId}`, {
+                responseType: 'stream',
+                headers: {
+                    cookie: config.authCookie
+                }
+            });
+            const bundleFile = path.join(tempDir, 'remoteChanges.bundle');
+            await downloadFile(res, bundleFile);
+            const bundleHead = (await exec('git', ['bundle', 'list-heads', bundleFile], {cwd: projectDir, log: false}))[0].split(/\s+/)[0];
+            if (bundleHead === headCommitId) {
+                lastPullError = '';
+                return false;
+            }
+            taskLogger.start('pulling new changes from studio...');
+            await gitResetAndPull(tempDir, projectDir);
+        } else {
+            taskLogger.start('pulling new changes from studio...');
+            const tempFile = path.join(tempDir, 'changes.zip');
+            const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/remoteChanges?headCommitId=${headCommitId}`, {
+                responseType: 'stream',
+                headers: {
+                    cookie: config.authCookie
+                }
+            });
+            await downloadFile(res, tempFile);
+            await unzip(tempFile, tempDir);
+            await gitResetAndPull(tempDir, projectDir);
+            await exec('git', ['apply', '--allow-empty', '--ignore-space-change', path.join(tempDir, 'patchFile.patch')], {cwd: projectDir});
+            logger.debug({label: loggerLabel, message: 'Copying any uncommitted binary files'});
+            copyContentsRecursiveSync(path.join(tempDir, 'binaryFiles'), projectDir);
+        }
+        lastPullError = '';
+        taskLogger.succeed(`pulled new changes from studio - head commit id ${headCommitId}`);
+        const filesChanged = (await exec('git', ['diff', '--name-status', 'HEAD~1', 'HEAD'], {cwd: projectDir})).filter(Boolean);
+        const formatted = filesChanged.map((line) => {
+            const [status, ...fileParts] = line.trim().split(/\s+/);
+            const filePath = fileParts.join(' ').replace(/^.*webapp\//, '');
+            const color = status === 'A' ? chalk.green
+                : status === 'D' ? chalk.red
+                : status === 'M' ? chalk.yellow
+                : chalk.cyan;
+            return `${color(status)}:${color(filePath)}`;
         });
-        return null;
+        taskLogger.info("Files changed: \n\t" + formatted.join('\n\t'));
+        return true;
+    } catch (e) {
+        const message = `${e} The attempt to execute "git pull" was unsuccessful. Please verify your connections.`;
+        if (message !== lastPullError) {
+            lastPullError = message;
+            logger.info({label: loggerLabel, message});
+            taskLogger.succeed(message);
+        }
+        return false;
+    } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
     }
 }
 
@@ -480,11 +453,10 @@ async function setupProject(previewUrl, projectName, toDir, authToken) {
     const {config, project} = await setup(previewUrl, projectName, authToken);
     const projectId = useProject(project, config);
     await downloadProject(projectId, config, toDir);
-    const syncProject = () => pullChanges(projectId, config, toDir);
-    syncProject.getChangeFingerprint = () => getChangeFingerprint(projectId, config);
-    return syncProject;
+    return () => pullChanges(projectId, config, toDir);
 };
 
 module.exports = {
-    setupProject : setupProject
+    setupProject : setupProject,
+    pullsGitBundle
 };
