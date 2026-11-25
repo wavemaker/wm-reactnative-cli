@@ -224,6 +224,23 @@ wm-reactnative sync <preview_url> [additional_arguments]
 |**\-\-verbose**|**DEFAULT:** false <br> if true, then all the logs will be shown in the terminal. |
 |**\-\-ignoreUpgrade**|**DEFAULT:** false <br> if true, skips the [required CLI upgrade](#required-updates) check and runs on the installed version. |
 
+### Access token
+
+`sync` and every `run` preview command (`expo`, `web-preview`, `android`, `ios`) need an access token for the project:
+
+1. In Studio, open the project and go to **Settings → Access Tokens**.
+2. Generate a token with the **Sync Plugin** scope.
+3. Paste it when the CLI asks, or add it to the preview URL after `#`:
+~~~
+wm-reactnative sync "<preview_url>#<token>"
+~~~
+
+The CLI checks that the token is valid and belongs to this project. If it is missing, expired, revoked or for another project, the CLI says why and asks for a new one. After a typed token works, the CLI asks whether to save it. Saved tokens are kept per Studio host and project in `auth.json` inside the CLI folder (`WM_REACTNATIVE_CLI` if set, else `~/.wm-reactnative-cli`), which only your user can read. A saved token that Studio rejects is removed. The old shared `.store` file in the same folder is deleted on every Studio version.
+
+### Real-time sync
+
+While sync is running, the CLI checks Studio for new changes every second. When it finds any, it pulls them and regenerates the app. Studio versions older than 11.4 (except AI platforms) are checked every 5 seconds instead.
+
 After the build is complete:
 
 - Locate the directory where the Expo app has been generated in command logs.
