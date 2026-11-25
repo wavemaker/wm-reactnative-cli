@@ -42,15 +42,18 @@ class OutputPipe {
 
 module.exports = {
     'exec': (cmd, args, options) => {
-        logger.info({
-            label: loggerLabel,
-            message: `
+        // log: false keeps the command quiet: no banner (its arguments can hold secrets) and no output lines.
+        if (!options || options.log !== false) {
+            logger.info({
+                label: loggerLabel,
+                message: `
         \x1b[1;34m    ╔════════════════════════════════════╗
             ║ Executing: ${cmd} ${(args && args.join(' '))}
             ╚════════════════════════════════════╝\x1b[0m
             `
-        });
-        
+            });
+        }
+
         const outputPipe = new OutputPipe(100, options && options.log, cmd.substr(cmd.lastIndexOf('/') + 1));
         const spawn = execa(cmd, args, {...options, env:{...process.env, FORCE_COLOR:'1'}});
         spawn.stdout.on('data', (data) => {

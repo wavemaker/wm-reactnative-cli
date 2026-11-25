@@ -1,6 +1,7 @@
 const readline = require("readline");
 const chalk = require("chalk");
 const { ProgressBar, overallProgressBar } = require("./progress-bar");
+const { record } = require("../telemetry");
 
 class CustomSpinnerBar {
     constructor(options = {}) {
@@ -28,6 +29,7 @@ class CustomSpinnerBar {
     start(text) {
         if (global.verbose) return;
         if (text) this.text = text;
+        record("info", this.text);
         this.isSpinning = true;
         this.frameIndex = 0;
         this.resetProgressBar();
@@ -50,6 +52,7 @@ class CustomSpinnerBar {
     succeed(text) {
         if (global?.verbose) return this;
         this.stop();
+        record("info", text || this.text);
 
         this.progressBar.setProgress(this.progressBar.total);
 
@@ -64,6 +67,7 @@ class CustomSpinnerBar {
         if (global.verbose) return this;
         this.stop();
         let finalText = text || this.text;
+        record("error", finalText);
         if(global.logDirectory){
             finalText += chalk.gray(" Check logs at: ") + chalk.cyan(global.logDirectory);
         }
@@ -75,6 +79,7 @@ class CustomSpinnerBar {
     info(text) {
         if (global.verbose) return this;
         this.stop();
+        record("info", text || this.text);
         this.stream.write(`${chalk.blue("ℹ")} ${text || this.text}\n`);
         return this;
     }
@@ -82,6 +87,7 @@ class CustomSpinnerBar {
     warn(text) {
         if (global.verbose) return this;
         this.stop();
+        record("warn", text || this.text);
         this.stream.write(`${chalk.yellow("⚠")} ${text || this.text}\n`);
         return this;
     }

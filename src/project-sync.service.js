@@ -164,8 +164,7 @@ async function gitResetAndPull(tempDir, projectDir){
 async function pullChanges(projectId, config, projectDir) {
     const tempDir = path.join(os.tmpdir(), `changes_${Date.now()}`);
     try {
-        const headCommitId = (await exec('git', ['rev-parse', 'HEAD'], {cwd: projectDir}))[0];
-        logger.debug({label: loggerLabel, message: 'HEAD commit id is ' + headCommitId});
+        const headCommitId = (await exec('git', ['rev-parse', 'HEAD'], {cwd: projectDir, log: false}))[0];
         fs.mkdirpSync(tempDir);
         if (pullsGitBundle()) {
             const gitInfo = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/vcs/pull?lastPulledWorkspaceCommitId=${headCommitId}&lastPulledRemoteHeadCommitId=${remoteBaseCommitId}`, {

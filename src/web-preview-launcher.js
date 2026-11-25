@@ -12,8 +12,9 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isExpoWebPreviewContainer, pipeRequestToUrl } = require('./utils');
+const { readAndReplaceFileContent, updateWmRNConfig, isExpoWebPreviewContainer, pipeRequestToUrl, getUiVersion } = require('./utils');
 const { EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION } = require('./requirements');
+const telemetry = require('./telemetry');
 const axios = require('axios');
 const { setupProject } = require('./project-sync.service');
 const { getProjectScope, getAppScope, DEFAULT_SCOPE } = require('./wm-scope');
@@ -154,6 +155,7 @@ async function transpile(projectDir, previewUrl, incremental) {
         taskLogger.incrementProgress(2);
     }
     try {
+    updateWmRNConfig(getWmProjectDir(projectDir));
     await exec('node',
         [codegen, 'transpile', '--profile="' + profile + '"', '--autoClean=false',
             `--incrementalBuild=${!!incremental}`,
@@ -277,10 +279,7 @@ async function getCodeGenPath(projectDir) {
             await exec('npm', ['init', '-y'], {
                 cwd: temp
             });
-            var pom = fs.readFileSync(`${projectDir}/pom.xml`, { encoding: 'utf-8'});
-            var uiVersion = ((pom 
-                && pom.match(/wavemaker.app.runtime.ui.version>(.*)<\/wavemaker.app.runtime.ui.version>/))
-                || [])[1];
+            var uiVersion = getUiVersion(projectDir);
             await exec('npm', ['install', '--save-dev', `${scope}/rn-codegen@${uiVersion}`], {
                 cwd: temp
             });
@@ -453,6 +452,7 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.incrementProgress(1);
     taskLogger.succeed(previewSteps[0].succeed);
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
+    telemetry.set({ project: projectName, projectDir, appDir: getExpoProjectDir(projectDir) });
     taskLogger.start(previewSteps[3].start);
     taskLogger.setTotal(previewSteps[3].total);
     await transpile(projectDir, previewUrl, false);

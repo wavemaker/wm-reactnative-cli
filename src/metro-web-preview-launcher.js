@@ -12,6 +12,7 @@ const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const { previewSteps } = require('./custom-logger/steps');
 const launcher = require('./expo-launcher');
 const { getProjectScope } = require('./wm-scope');
+const { getUiVersion, updateWmRNConfig } = require('./utils');
 const { getWmProjectDir, getExpoProjectDir } = launcher;
 
 const loggerLabel = 'metro-web-preview';
@@ -29,12 +30,6 @@ function forceRemove(target) {
         makeWritable(target);
         fs.removeSync(target);
     }
-}
-
-
-function getUiVersion(projectDir) {
-    const pom = fs.readFileSync(`${projectDir}/pom.xml`, { encoding: 'utf-8' });
-    return (pom.match(/wavemaker.app.runtime.ui.version>(.*)<\/wavemaker.app.runtime.ui.version>/) || [])[1];
 }
 
 // rn-app lives under the CLI root, laid out like Studio's /root/.wm/node_modules/rn-app/<version>/, so codegen's
@@ -330,11 +325,7 @@ async function build(projectDir, incremental) {
         }
         // Newer codegen runs esbuild for "web-preview" unless the project opts in to Metro. Set it on every
         // run: a Studio pull can overwrite this file. Older codegen ignores the value and runs Metro anyway.
-        const wmConfigFile = `${getWmProjectDir(projectDir)}/wm_rn_config.json`;
-        const wmConfig = fs.readJSONSync(wmConfigFile, { throws: false }) || {};
-        if (wmConfig.profile !== 'new-preview') {
-            fs.writeJSONSync(wmConfigFile, { ...wmConfig, profile: 'new-preview' }, { spaces: 4 });
-        }
+        updateWmRNConfig(getWmProjectDir(projectDir), { profile: 'new-preview' });
         await exec('node', [codegen, 'transpile', '--profile="web-preview"', '--autoClean=false',
             `--incrementalBuild=${!!incremental}`, `--rnAppPath=${rnAppPath}`, getWmProjectDir(projectDir), appDir]);
         builtHead = head;

@@ -24,6 +24,7 @@ import('update-notifier').then(({ default: updateNotifier }) => {
 }).catch(() => {});
 const prompt = require('prompt');
 const logger = require('./src/logger');
+const telemetry = require('./src/telemetry');
 const {calculateTotalSteps, androidBuildSteps, previewSteps} = require('./src/custom-logger/steps');
 const {overallProgressBar} = require('./src/custom-logger/progress-bar')
 const taskLogger = require('./src/custom-logger/task-logger').spinnerBar;
@@ -387,6 +388,7 @@ return require('yargs')
         type: 'boolean',
         global: true
     })
+    .middleware(telemetry.start)
     .help('h')
     .alias('h', 'help').argv;
 }
