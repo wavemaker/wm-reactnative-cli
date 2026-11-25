@@ -1,4 +1,5 @@
 const { URL } = require('url');
+const crypto = require('crypto');
 const fs = require('fs-extra');
 const path = require('path');
 const logger = require('./logger');
@@ -21,6 +22,8 @@ const loggerLabel = 'project-sync-service';
 let remoteBaseCommitId = '';
 let WM_PLATFORM_VERSION = '';
 let IS_AI_PLATFORM = false;
+const CHANGE_SIGNAL_ENDPOINTS = ['vcs/log?limit=1&offset=0'];
+const CHANGE_SIGNAL_TIMEOUT_MS = 10 * 1000;
 
 async function getProjectList(config) {
     return (await axios.get(`${config.baseUrl}/edn-services/rest/users/projects/list`,
@@ -233,6 +236,30 @@ async function pullChanges(projectId, config, projectDir) {
             message: e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`
         });
         taskLogger.succeed( e+` The attempt to execute "git pull" was unsuccessful. Please verify your connections.`);
+    }
+}
+
+async function getChangeFingerprint(projectId, config) {
+    try {
+        const bodies = await Promise.all(CHANGE_SIGNAL_ENDPOINTS.map(async (endpoint) => {
+            const res = await axios.get(`${config.baseUrl}/studio/services/projects/${projectId}/${endpoint}`, {
+                headers: {
+                    cookie: config.authCookie
+                },
+                maxRedirects: 0,
+                timeout: CHANGE_SIGNAL_TIMEOUT_MS,
+                responseType: 'text',
+                transformResponse: (data) => data
+            });
+            return res.data;
+        }));
+        return crypto.createHash('sha1').update(bodies.join('\n')).digest('hex');
+    } catch (e) {
+        logger.debug({
+            label: loggerLabel,
+            message: `could not read the Studio change signal: ${e.message}`
+        });
+        return null;
     }
 }
 
@@ -453,7 +480,9 @@ async function setupProject(previewUrl, projectName, toDir, authToken) {
     const {config, project} = await setup(previewUrl, projectName, authToken);
     const projectId = useProject(project, config);
     await downloadProject(projectId, config, toDir);
-    return () => pullChanges(projectId, config, toDir);
+    const syncProject = () => pullChanges(projectId, config, toDir);
+    syncProject.getChangeFingerprint = () => getChangeFingerprint(projectId, config);
+    return syncProject;
 };
 
 module.exports = {
