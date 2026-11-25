@@ -30,6 +30,11 @@ async function readAndReplaceFileContent(path, writeFn) {
     });
 }
 
+function getUiVersion(projectDir) {
+    const pom = fs.readFileSync(`${projectDir}/pom.xml`, { encoding: 'utf-8' });
+    return (pom.match(/wavemaker.app.runtime.ui.version>(.*)<\/wavemaker.app.runtime.ui.version>/) || [])[1];
+}
+
 function streamToString (stream) {
     const chunks = [];
     return new Promise((resolve, reject) => {
@@ -116,6 +121,7 @@ async function getDestPathForWindows(mode, projectDir = ''){
 module.exports = {
     isWindowsOS: isWindowsOS,
     readAndReplaceFileContent: readAndReplaceFileContent,
+    getUiVersion: getUiVersion,
     iterateFiles: iterateFiles,
     streamToString: streamToString,
     pipeRequestToUrl: pipeRequestToUrl,

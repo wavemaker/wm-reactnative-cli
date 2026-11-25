@@ -11,6 +11,8 @@ const {
 } = format;
 
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
+const telemetry = require('./telemetry');
+const telemetryTransport = () => new transports.Stream({ stream: telemetry.logStream });
 
 const consoleFormat = printf(({
     level,
@@ -39,9 +41,10 @@ const jsonFormat = printf(({
 });
 var logger = createLogger({
     level: 'debug',
-    silent: !global.verbose,
     transports: [
+        telemetryTransport(),
         new(transports.Console)({
+            silent: !global.verbose,
             timestamp: function () {
                 return Date.now();
             },
@@ -58,6 +61,7 @@ logger.setLogDirectory = (path) => {
     logger.configure({
         level: 'debug',
         transports: [
+            telemetryTransport(),
             new(transports.Console)({
                 silent: !global.verbose,
                 timestamp: function () {

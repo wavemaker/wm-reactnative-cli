@@ -55,6 +55,14 @@ export WM_REACTNATIVE_CLI="$HOME/cli/"
 
 **_NOTE:_** To avoid cmake errors caused due to long paths in Windows, we suggest making the cli path shorter using this variable
 
+### Usage logs
+
+When a command ends, the CLI sends its log (with home paths, tokens and cookies removed) to WaveMaker to help fix issues. To turn this off:
+
+~~~
+export WM_CLI_TELEMETRY=off
+~~~
+
 ## Android Build
 
 ### Requirements

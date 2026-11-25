@@ -22,6 +22,7 @@ const chalk = require('chalk');
 const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const loggerLabel = 'wm-reactnative-cli';
 const {androidBuildSteps} = require('./custom-logger/steps');
+const telemetry = require('./telemetry');
 
 function getFileSize(path) {
     const stats = path && fs.statSync(path);
@@ -40,6 +41,7 @@ async function build(args) {
     args.dest = directories.dest;
  
     config.metaData = await readWmRNConfig(args.src);
+    telemetry.set({ appDir: args.src });
 
     if (config.metaData.icon.src.startsWith('resources')) {
         config.metaData.icon.src = 'assets/' + path.basename(config.metaData.icon.src);

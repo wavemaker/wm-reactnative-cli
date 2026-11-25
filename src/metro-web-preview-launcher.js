@@ -12,6 +12,7 @@ const taskLogger = require('./custom-logger/task-logger').spinnerBar;
 const { previewSteps } = require('./custom-logger/steps');
 const launcher = require('./expo-launcher');
 const { getProjectScope } = require('./wm-scope');
+const { getUiVersion } = require('./utils');
 const { getWmProjectDir, getExpoProjectDir } = launcher;
 
 const loggerLabel = 'metro-web-preview';
@@ -29,12 +30,6 @@ function forceRemove(target) {
         makeWritable(target);
         fs.removeSync(target);
     }
-}
-
-
-function getUiVersion(projectDir) {
-    const pom = fs.readFileSync(`${projectDir}/pom.xml`, { encoding: 'utf-8' });
-    return (pom.match(/wavemaker.app.runtime.ui.version>(.*)<\/wavemaker.app.runtime.ui.version>/) || [])[1];
 }
 
 // rn-app lives under the CLI root, laid out like Studio's /root/.wm/node_modules/rn-app/<version>/, so codegen's

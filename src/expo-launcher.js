@@ -9,7 +9,8 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl } = require('./utils');
+const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl, getUiVersion } = require('./utils');
+const telemetry = require('./telemetry');
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion, EXPO_SDK_54_0_12, EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION} = require('./requirements');
 const axios = require('axios');
@@ -194,10 +195,7 @@ async function transpile(projectDir, previewUrl, incremental) {
                 await exec('npm', ['init', '-y'], {
                     cwd: temp
                 });
-                var pom = fs.readFileSync(`${projectDir}/pom.xml`, { encoding: 'utf-8'});
-                var uiVersion = ((pom 
-                    && pom.match(/wavemaker.app.runtime.ui.version>(.*)<\/wavemaker.app.runtime.ui.version>/))
-                    || [])[1];
+                var uiVersion = getUiVersion(projectDir);
                 await exec('npm', ['install', '--save-dev', `${scope}/rn-codegen@${uiVersion}`], {
                     cwd: temp
                 });
@@ -360,6 +358,7 @@ async function setup(previewUrl, _clean, authToken) {
     taskLogger.resetProgressBar();
     taskLogger.setTotal(previewSteps[1].total)
     const syncProject = await setupProject(previewUrl, projectName, projectDir, authToken);
+    telemetry.set({ project: projectName, projectDir, appDir: getExpoProjectDir(projectDir) });
     await transpileOrFail(projectDir, previewUrl);
     return {projectDir, syncProject};
 }
