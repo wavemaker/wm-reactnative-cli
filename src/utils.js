@@ -15,6 +15,22 @@ function isWindowsOS() {
     return (os.platform() === "win32" || os.platform() === "win64");
 }
 
+// Sets fields in the project's wm_rn_config.json before codegen reads it; on Windows the slow dependency check is turned off.
+function updateWmRNConfig(wmProjectDir, fields = {}) {
+    const file = path.join(wmProjectDir, 'wm_rn_config.json');
+    const updates = { ...fields, ...(isWindowsOS() ? { dependencyCheck: false } : {}) };
+    let config = {};
+    try {
+        config = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    } catch (e) {
+        logger.warn({ label: loggerLabel, message: `could not read ${file}: ${e.message}` });
+    }
+    // Written only when a field changes: Studio's formatting is kept and codegen sees no config change.
+    if (Object.entries(updates).some(([key, value]) => config[key] !== value)) {
+        fs.writeFileSync(file, JSON.stringify({ ...config, ...updates }, null, 4));
+    }
+}
+
 async function readAndReplaceFileContent(path, writeFn) {
     const content = fs.readFileSync(path, 'utf-8');
     return Promise.resolve().then(() => {    
@@ -120,6 +136,7 @@ async function getDestPathForWindows(mode, projectDir = ''){
 
 module.exports = {
     isWindowsOS: isWindowsOS,
+    updateWmRNConfig: updateWmRNConfig,
     readAndReplaceFileContent: readAndReplaceFileContent,
     getUiVersion: getUiVersion,
     iterateFiles: iterateFiles,

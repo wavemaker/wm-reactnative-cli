@@ -12,7 +12,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isExpoWebPreviewContainer, pipeRequestToUrl, getUiVersion } = require('./utils');
+const { readAndReplaceFileContent, updateWmRNConfig, isExpoWebPreviewContainer, pipeRequestToUrl, getUiVersion } = require('./utils');
 const { EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION } = require('./requirements');
 const telemetry = require('./telemetry');
 const axios = require('axios');
@@ -155,6 +155,7 @@ async function transpile(projectDir, previewUrl, incremental) {
         taskLogger.incrementProgress(2);
     }
     try {
+    updateWmRNConfig(getWmProjectDir(projectDir));
     await exec('node',
         [codegen, 'transpile', '--profile="' + profile + '"', '--autoClean=false',
             `--incrementalBuild=${!!incremental}`,

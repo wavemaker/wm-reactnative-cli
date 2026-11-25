@@ -9,7 +9,7 @@ const httpProxy = require('http-proxy');
 const {
     exec
 } = require('./exec');
-const { readAndReplaceFileContent, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl, getUiVersion } = require('./utils');
+const { readAndReplaceFileContent, updateWmRNConfig, isWindowsOS, isExpoWebPreviewContainer, getDestPathForWindows, pipeRequestToUrl, getUiVersion } = require('./utils');
 const telemetry = require('./telemetry');
 const crypto = require('crypto');
 const {VERSIONS, hasValidExpoVersion, EXPO_SDK_54_0_12, EXPO_SDK_56, MIN_RN_APP_SUPPORT_VERSION} = require('./requirements');
@@ -213,6 +213,7 @@ async function transpile(projectDir, previewUrl, incremental) {
             });
         }
         const profile = isWebPreview ? 'web-preview' : 'expo-preview';
+        updateWmRNConfig(getWmProjectDir(projectDir));
         await exec('node',
             [codegen, 'transpile', '--profile="' + profile + '"', '--autoClean=false',
                 `--incrementalBuild=${!!incremental}`,
